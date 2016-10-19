@@ -38,3 +38,8 @@ captures/
 
 # Keystore files
 *.jks
+
+# From Android Studio .gitignore
+/.idea/libraries
+.DS_Store
+.externalNativeBuild
