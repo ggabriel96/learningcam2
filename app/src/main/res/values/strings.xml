@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Learning Cam2</string>
+    <string name="permission_request">We need camera permission</string>
+    <string name="camera_error">This cameraDevice doesn\'t support Camera2 API</string>
 </resources>
