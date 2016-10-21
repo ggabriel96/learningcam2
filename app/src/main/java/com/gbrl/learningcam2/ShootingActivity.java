@@ -19,6 +19,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
@@ -51,7 +52,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
     private void process(CaptureResult result) {
       Integer autoFocusState = null, autoExposureState = null;
-      switch (cameraState) {
+      switch (ShootingActivity.this.cameraState) {
         case PREVIEW:
           // We have nothing to do when the camera preview is working normally.
           break;
@@ -142,8 +143,8 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     @Override
     public void onOpened(@NonNull CameraDevice cameraDevice) {
       ShootingActivity.this.cameraDevice = cameraDevice;
-      TextureView textureView = (TextureView) ShootingActivity.this.findViewById(R.id.textureView);
-      Surface previewSurface = new Surface(textureView.getSurfaceTexture());
+      ShootingActivity.this.cameraState = CameraState.PREVIEW;
+      Surface previewSurface = new Surface(ShootingActivity.this.textureView.getSurfaceTexture());
       Surface pictureSurface = ShootingActivity.this.imageReader.getSurface();
 
       List<Surface> outputs = new ArrayList<>();
@@ -183,11 +184,12 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    this.setContentView(R.layout.shooting_layout);
 
     this.cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
-    this.textureView = new TextureView(this);
+    this.textureView = (TextureView) this.findViewById(R.id.textureView);
+    // this.textureView = new TextureView(this);
     this.textureView.setSurfaceTextureListener(this);
-    this.setContentView(this.textureView);
   }
 
   @Override
