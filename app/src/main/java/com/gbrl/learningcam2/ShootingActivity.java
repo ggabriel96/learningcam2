@@ -360,7 +360,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private void setup() {
     this.cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
     this.textureView = (TextureView) this.findViewById(R.id.textureView);
-    this.textureView.setSurfaceTextureListener(this);
+    // this.textureView.setSurfaceTextureListener(this);
   }
 
   /**
@@ -381,25 +381,81 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
+  private void setupCamera() throws CameraAccessException {
+    for (String cameraId : this.cameraManager.getCameraIdList()) {
+      CameraCharacteristics characteristics = this.cameraManager.getCameraCharacteristics(cameraId);
+
+      Integer lensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
+      if (lensFacing != null && lensFacing == CameraCharacteristics.LENS_FACING_FRONT) {
+        continue;
+      }
+
+      StreamConfigurationMap configurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+      if (configurationMap == null) {
+        continue;
+      }
+
+      this.sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+      Size[] sizes = configurationMap.getOutputSizes(ImageFormat.JPEG);
+      Size largest = Collections.max(Arrays.asList(sizes), new CompareSizesByArea());
+      Log.i("for", "onSurfaceTextureAvailable ImageReader.newInstance");
+      this.imageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
+      this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
+
+      this.cameraId = cameraId;
+      break;
+    }
+  }
+
   private void openCamera() throws CameraAccessException, SecurityException {
-    this.cameraManager.openCamera(this.cameraId, this.cameraStateCallback, null);
+    this.hasCameraPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    this.hasWriteExternalStoragePermission = ActivityCompat.checkSelfPermission(ShootingActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    if (this.hasCameraPermission && this.hasWriteExternalStoragePermission) {
+      this.setupCamera();
+      this.cameraManager.openCamera(this.cameraId, this.cameraStateCallback, null);
+    } else {
+      String[] permissions = new String[2];
+      if (!this.hasCameraPermission) {
+        permissions[0] = Manifest.permission.CAMERA;
+      }
+      if (!this.hasWriteExternalStoragePermission) {
+        permissions[1] = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+      }
+      ActivityCompat.requestPermissions(ShootingActivity.this, permissions, ShootingActivity.REQUEST_ALL_PERMISSIONS);
+    }
   }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     this.setContentView(R.layout.shooting_layout);
-    // this.setup();
-  }
-
-  @Override
-  protected void onResume() {
-    super.onResume();
     this.setup();
   }
 
   @Override
+  protected void onResume() {
+    Log.i("ACTIVITY", "onResume");
+    super.onResume();
+    // When the screen is turned off and turned back on, the SurfaceTexture is already
+    // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
+    // a camera and start preview from here (otherwise, we wait until the surface is ready in
+    // the SurfaceTextureListener).
+    if (this.textureView.isAvailable()) {
+      Log.i("onResume", "openCamera");
+      try {
+        this.openCamera();
+      } catch (CameraAccessException e) {
+        e.printStackTrace();
+      }
+    } else {
+      this.textureView.setSurfaceTextureListener(this);
+    }
+  }
+
+  @Override
   protected void onPause() {
+    Log.i("ACTIVITY", "onPause");
     super.onPause();
     this.closeCamera();
   }
@@ -409,16 +465,10 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     switch (requestCode) {
       case REQUEST_ALL_PERMISSIONS:
         if (grantResults.length > 0) {
-          if (grantResults[0] == PackageManager.PERMISSION_GRANTED) this.hasCameraPermission = Boolean.TRUE;
-          if (grantResults[1] == PackageManager.PERMISSION_GRANTED) this.hasWriteExternalStoragePermission = Boolean.TRUE;
-          // if (this.hasCameraPermission && this.hasWriteExternalStoragePermission) {
-          //   try {
-          //     Log.i("permissions", "openCamera");
-          //     this.openCamera();
-          //   } catch (CameraAccessException e) {
-          //     e.printStackTrace();
-          //   }
-          // }
+          if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            this.hasCameraPermission = Boolean.TRUE;
+          if (grantResults[1] == PackageManager.PERMISSION_GRANTED)
+            this.hasWriteExternalStoragePermission = Boolean.TRUE;
         }
         break;
       default:
@@ -440,53 +490,15 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   @Override
   public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
     try {
-      for (String cameraId : this.cameraManager.getCameraIdList()) {
-        CameraCharacteristics characteristics = this.cameraManager.getCameraCharacteristics(cameraId);
-
-        Integer lensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
-        if (lensFacing != null && lensFacing == CameraCharacteristics.LENS_FACING_FRONT) {
-          continue;
-        }
-
-        StreamConfigurationMap configurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        if (configurationMap == null) {
-          continue;
-        }
-
-        this.sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-
-        Size[] sizes = configurationMap.getOutputSizes(ImageFormat.JPEG);
-        Size largest = Collections.max(Arrays.asList(sizes), new CompareSizesByArea());
-        Log.i("for", "onSurfaceTextureAvailable ImageReader.newInstance");
-        this.imageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
-        this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
-
-        this.cameraId = cameraId;
-        break;
-      }
-
-      this.hasCameraPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
-      this.hasWriteExternalStoragePermission = ActivityCompat.checkSelfPermission(ShootingActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-
-      if (this.hasCameraPermission && this.hasWriteExternalStoragePermission) {
-        this.openCamera();
-      } else {
-        String[] permissions = new String[2];
-        if (!this.hasCameraPermission) {
-          permissions[0] = Manifest.permission.CAMERA;
-        }
-        if (!this.hasWriteExternalStoragePermission) {
-          permissions[1] = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-        }
-        ActivityCompat.requestPermissions(ShootingActivity.this, permissions, ShootingActivity.REQUEST_ALL_PERMISSIONS);
-      }
+      this.openCamera();
     } catch (CameraAccessException e) {
       e.printStackTrace();
     }
   }
 
   @Override
-  public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {}
+  public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+  }
 
   @Override
   public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
@@ -494,5 +506,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   }
 
   @Override
-  public void onSurfaceTextureUpdated(SurfaceTexture surface) {}
+  public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+  }
 }
