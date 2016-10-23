@@ -17,14 +17,16 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -39,9 +41,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
 
@@ -59,6 +59,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private CameraManager cameraManager;
   private CaptureRequest previewRequest;
   private CameraCaptureSession captureSession;
+  private GestureDetectorCompat gestureDetector;
   private CaptureRequest.Builder previewRequestBuilder;
   private Boolean hasCameraPermission, hasWriteExternalStoragePermission;
 
@@ -82,7 +83,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     , PICTURE_TAKEN
   }
 
-  private CameraCaptureSession.CaptureCallback sessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
+  private final CameraCaptureSession.CaptureCallback sessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
 
     private void process(CaptureResult result) {
       Integer autoFocusState = null, autoExposureState = null;
@@ -175,13 +176,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     public void onOpened(@NonNull CameraDevice cameraDevice) {
       ShootingActivity.this.cameraDevice = cameraDevice;
       ShootingActivity.this.cameraState = CameraState.PREVIEW;
-      ShootingActivity.this.textureView.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-          Log.i("onClick", "takePicture");
-          ShootingActivity.this.takePicture();
-        }
-      });
 
       Surface previewSurface = new Surface(ShootingActivity.this.textureView.getSurfaceTexture());
       Log.i("onOpened", "ShootingActivity.this.imageReader.getSurface()");
@@ -224,7 +218,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   };
 
-  private String uniqueImageName() {
+  protected String uniqueImageName() {
     return "JPEG_" + new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(Calendar.getInstance().getTime()) + ".jpg";
   }
 
@@ -263,7 +257,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
-  private void takePicture() {
+  protected void takePicture() {
     try {
       // Tell captureCallback to wait for the lock.
       ShootingActivity.this.cameraState = CameraState.WAITING_FOCUS_LOCK;
@@ -358,9 +352,9 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   }
 
   private void setup() {
+    this.gestureDetector = new GestureDetectorCompat(this, new GestureListener(this));
     this.cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
     this.textureView = (TextureView) this.findViewById(R.id.textureView);
-    // this.textureView.setSurfaceTextureListener(this);
   }
 
   /**
@@ -427,10 +421,35 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   }
 
   @Override
+  public boolean onTouchEvent(MotionEvent event){
+    this.gestureDetector.onTouchEvent(event);
+    return super.onTouchEvent(event);
+  }
+
+  @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     this.setContentView(R.layout.shooting_layout);
     this.setup();
+  }
+
+  @Override
+  public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) {
+      this.goFullscreen();
+    }
+  }
+
+  private void goFullscreen() {
+    this.textureView.setSystemUiVisibility(
+        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+            | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+    );
   }
 
   @Override
