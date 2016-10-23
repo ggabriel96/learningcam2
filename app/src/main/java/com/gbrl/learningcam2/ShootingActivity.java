@@ -2,6 +2,7 @@ package com.gbrl.learningcam2;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
@@ -18,6 +19,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -215,8 +217,10 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private final ImageReader.OnImageAvailableListener onImageAvailableListener = new ImageReader.OnImageAvailableListener() {
     @Override
     public void onImageAvailable(ImageReader reader) {
-      if (ShootingActivity.this.setupPhotoFile())
+      if (ShootingActivity.this.setupPhotoFile()) {
         ShootingActivity.this.saveImage(reader.acquireLatestImage());
+        ShootingActivity.this.broadcastNewPicture();
+      }
     }
   };
 
@@ -334,6 +338,12 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     } catch (CameraAccessException e) {
       e.printStackTrace();
     }
+  }
+
+  public void broadcastNewPicture() {
+    Uri contentUri = Uri.fromFile(this.latestPhotoFile);
+    Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, contentUri);
+    this.sendBroadcast(mediaScanIntent);
   }
 
   /**
