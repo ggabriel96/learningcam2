@@ -2,6 +2,7 @@ package com.gbrl.learningcam2;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -46,8 +47,6 @@ import java.util.List;
 public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
 
   private static final int REQUEST_ALL_PERMISSIONS = 1;
-  // private static final int REQUEST_CAMERA_PERMISSION = 1;
-  // private static final int REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION = 2;
 
   private String cameraId;
   private File latestPhotoFile;
@@ -61,18 +60,21 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private CameraCaptureSession captureSession;
   private GestureDetectorCompat gestureDetector;
   private CaptureRequest.Builder previewRequestBuilder;
-  private Boolean hasCameraPermission, hasWriteExternalStoragePermission;
 
   /**
    * Conversion from screen rotation to JPEG orientation.
    */
   private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+  private static final String[] requiredPermissions = {
+      Manifest.permission.CAMERA
+      , Manifest.permission.WRITE_EXTERNAL_STORAGE
+  };
 
   static {
-    ORIENTATIONS.append(Surface.ROTATION_0, 90);
-    ORIENTATIONS.append(Surface.ROTATION_90, 0);
-    ORIENTATIONS.append(Surface.ROTATION_180, 270);
-    ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_0, 90);
+    ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_90, 0);
+    ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_180, 270);
+    ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_270, 180);
   }
 
   public enum CameraState {
@@ -402,26 +404,51 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
+  private Boolean hasRequiredPermissions() {
+    for (String permission : ShootingActivity.requiredPermissions) {
+      if (ActivityCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+        return Boolean.FALSE;
+      }
+    }
+    return Boolean.TRUE;
+  }
+
+  private void requestPermissions() {
+    PackageInfo packageInfo = null;
+    List<String> missingPermissions = new ArrayList<>();
+    try {
+      packageInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), PackageManager.GET_PERMISSIONS);
+    } catch (PackageManager.NameNotFoundException e) {
+      e.printStackTrace();
+    }
+
+    for (String permission : packageInfo.requestedPermissions) {
+      if (ActivityCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+        missingPermissions.add(permission);
+      }
+    }
+    // https://shipilev.net/blog/2016/arrays-wisdom-ancients/
+    String[] permissions = missingPermissions.toArray(new String[0]);
+    ActivityCompat.requestPermissions(ShootingActivity.this, permissions, ShootingActivity.REQUEST_ALL_PERMISSIONS);
+  }
+
   private void openCamera() throws CameraAccessException, SecurityException {
-    this.hasCameraPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
-    this.hasWriteExternalStoragePermission = ActivityCompat.checkSelfPermission(ShootingActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-    if (this.hasCameraPermission && this.hasWriteExternalStoragePermission) {
+    if (this.hasRequiredPermissions()) {
       this.setupCamera();
       this.cameraManager.openCamera(this.cameraId, this.cameraStateCallback, null);
     } else {
-      String[] permissions = new String[2];
-      if (!this.hasCameraPermission) {
-        permissions[0] = Manifest.permission.CAMERA;
-      }
-      if (!this.hasWriteExternalStoragePermission) {
-        permissions[1] = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-      }
-      ActivityCompat.requestPermissions(ShootingActivity.this, permissions, ShootingActivity.REQUEST_ALL_PERMISSIONS);
+      this.requestPermissions();
     }
   }
 
   @Override
-  public boolean onTouchEvent(MotionEvent event){
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    if (requestCode == ShootingActivity.REQUEST_ALL_PERMISSIONS) return;
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent event) {
     this.gestureDetector.onTouchEvent(event);
     return super.onTouchEvent(event);
   }
@@ -477,22 +504,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.i("ACTIVITY", "onPause");
     super.onPause();
     this.closeCamera();
-  }
-
-  @Override
-  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-    switch (requestCode) {
-      case REQUEST_ALL_PERMISSIONS:
-        if (grantResults.length > 0) {
-          if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
-            this.hasCameraPermission = Boolean.TRUE;
-          if (grantResults[1] == PackageManager.PERMISSION_GRANTED)
-            this.hasWriteExternalStoragePermission = Boolean.TRUE;
-        }
-        break;
-      default:
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
   }
 
   /**
