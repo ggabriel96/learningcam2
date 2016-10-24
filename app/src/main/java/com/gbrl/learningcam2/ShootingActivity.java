@@ -7,6 +7,10 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -33,6 +37,7 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,7 +51,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener {
+public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener {
 
   private static final int REQUEST_ALL_PERMISSIONS = 1;
 
@@ -58,10 +63,14 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private CameraState cameraState;
   private CameraDevice cameraDevice;
   private CameraManager cameraManager;
+  private SensorManager sensorManager;
   private CaptureRequest previewRequest;
   private CameraCaptureSession captureSession;
   private GestureDetectorCompat gestureDetector;
+  private Sensor accelerometer, gyroscope, rotation;
   private CaptureRequest.Builder previewRequestBuilder;
+  private float[] accelerometerValues, gyroscopeValues, rotationValues;
+  private Integer accelerometerAccuracy, gyroscopeAccuracy, rotationAccuracy;
 
   /**
    * Conversion from screen rotation to JPEG orientation.
@@ -367,6 +376,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     this.gestureDetector = new GestureDetectorCompat(this, new GestureListener(this));
     this.cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
     this.textureView = (TextureView) this.findViewById(R.id.textureView);
+    this.initSensors();
   }
 
   /**
@@ -489,10 +499,105 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     );
   }
 
+  private void initSensors() {
+    this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+    this.accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+    this.gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+    // The accuracy of this sensor is lower than the normal rotation vector sensor,
+    // but the power consumption is reduced. Better for background processing
+    // this.rotation = sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR);
+    this.rotation = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+  }
+
+  private void registerSensors() {
+    if (this.accelerometer != null) {
+      Log.i("REGISTER", "Accelerometer");
+      this.sensorManager.registerListener(this, this.accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+    } else {
+      Log.i("REGISTER", "Accelerometer not available!");
+    }
+
+    if (this.gyroscope != null) {
+      Log.i("REGISTER", "Gyroscope");
+      this.sensorManager.registerListener(this, this.gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+    } else {
+      Log.i("REGISTER", "Gyroscope not available!");
+    }
+
+    if (this.rotation != null) {
+      Log.i("REGISTER", "Rotation vector");
+      this.sensorManager.registerListener(this, this.rotation, SensorManager.SENSOR_DELAY_NORMAL);
+    } else {
+      Log.i("REGISTER", "Rotation vector not available!");
+    }
+  }
+
+  @Override
+  public void onSensorChanged(SensorEvent event) {
+    if (this.accelerometer != null && event.sensor.equals(this.accelerometer)) {
+      this.accelerometerValues = event.values;
+      // ((TextView) this.findViewById(R.id.accelerometer_x_val)).setText(String.format("%.3f", event.values[0]));
+      // ((TextView) this.findViewById(R.id.accelerometer_y_val)).setText(String.format("%.3f", event.values[1]));
+      // ((TextView) this.findViewById(R.id.accelerometer_z_val)).setText(String.format("%.3f", event.values[2]));
+    } else if (this.gyroscope != null && event.sensor.equals(this.gyroscope)) {
+      this.gyroscopeValues = event.values;
+      // ((TextView) this.findViewById(R.id.gyroscope_x_val)).setText(String.format("%.3f", event.values[0]));
+      // ((TextView) this.findViewById(R.id.gyroscope_y_val)).setText(String.format("%.3f", event.values[1]));
+      // ((TextView) this.findViewById(R.id.gyroscope_z_val)).setText(String.format("%.3f", event.values[2]));
+    } else if (this.rotation != null && event.sensor.equals(this.rotation)) {
+      this.rotationValues = event.values;
+      // ((TextView) this.findViewById(R.id.rotation_x_val)).setText(String.format("%.3f", event.values[0]));
+      // ((TextView) this.findViewById(R.id.rotation_y_val)).setText(String.format("%.3f", event.values[1]));
+      // ((TextView) this.findViewById(R.id.rotation_z_val)).setText(String.format("%.3f", event.values[2]));
+      // ((TextView) this.findViewById(R.id.rotation_scalar_val)).setText(String.format("%.3f", event.values[2]));
+    }
+    StringBuffer sb = new StringBuffer("Sensor values: ");
+    for (int i = 0; i < event.values.length; i++) {
+      if (i > 0) sb.append(", ");
+      sb.append(event.values[i]);
+    }
+    Log.i("SENSOR", sb.toString());
+  }
+
+  @Override
+  public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    // String acc = null;
+    // switch (accuracy) {
+    //   case SensorManager.SENSOR_STATUS_ACCURACY_HIGH:
+    //     acc = "high";
+    //     break;
+    //   case SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM:
+    //     acc = "medium";
+    //     break;
+    //   case SensorManager.SENSOR_STATUS_ACCURACY_LOW:
+    //     acc = "low";
+    //     break;
+    //   case SensorManager.SENSOR_STATUS_UNRELIABLE:
+    //     acc = "unreliable";
+    //     break;
+    //   case SensorManager.SENSOR_STATUS_NO_CONTACT:
+    //     acc = "no contact";
+    //     break;
+    //   default:
+    //     acc = "error";
+    // }
+    if (sensor.equals(this.accelerometer)) {
+      this.accelerometerAccuracy = accuracy;
+      // ((TextView) this.findViewById(R.id.accelerometer_acc_val)).setText(acc);
+    } else if (sensor.equals(this.gyroscope)) {
+      this.gyroscopeAccuracy = accuracy;
+      // ((TextView) this.findViewById(R.id.gyroscope_acc_val)).setText(acc);
+    } else if (sensor.equals(this.rotation)) {
+      this.rotationAccuracy = accuracy;
+      // ((TextView) this.findViewById(R.id.rotation_acc_val)).setText(acc);
+    }
+  }
+
   @Override
   protected void onResume() {
     Log.i("ACTIVITY", "onResume");
     super.onResume();
+    this.registerSensors();
     // When the screen is turned off and turned back on, the SurfaceTexture is already
     // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
     // a camera and start preview from here (otherwise, we wait until the surface is ready in
@@ -514,6 +619,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.i("ACTIVITY", "onPause");
     super.onPause();
     this.closeCamera();
+    this.sensorManager.unregisterListener(this);
   }
 
   /**
