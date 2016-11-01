@@ -18,7 +18,6 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
@@ -37,7 +36,6 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -72,6 +70,10 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private float[] accelerometerValues, gyroscopeValues, rotationValues;
   private Integer accelerometerAccuracy, gyroscopeAccuracy, rotationAccuracy;
 
+  private final CameraStateCallback cameraStateCallback = new CameraStateCallback(this);
+  private final SessionStateCallback sessionStateCallback = new SessionStateCallback(this);
+  private final SessionCaptureCallback sessionCaptureCallback = new SessionCaptureCallback(this);
+
   /**
    * Conversion from screen rotation to JPEG orientation.
    */
@@ -96,130 +98,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     , PICTURE_TAKEN
   }
 
-  private final CameraCaptureSession.CaptureCallback sessionCaptureCallback = new CameraCaptureSession.CaptureCallback() {
-
-    private void process(CaptureResult result) {
-      Integer autoFocusState = null, autoExposureState = null;
-      switch (ShootingActivity.this.cameraState) {
-        // case PREVIEW:
-        // We have nothing to do when the camera preview is working normally.
-        // break;
-        case WAITING_FOCUS_LOCK:
-          autoFocusState = result.get(CaptureResult.CONTROL_AF_STATE);
-          if (autoFocusState == null) {
-            ShootingActivity.this.captureStillPicture();
-          } else if (autoFocusState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED || autoFocusState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
-            // CONTROL_AE_STATE can be null on some devices
-            autoExposureState = result.get(CaptureResult.CONTROL_AE_STATE);
-            if (autoExposureState == null || autoExposureState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-              ShootingActivity.this.cameraState = CameraState.PICTURE_TAKEN;
-              ShootingActivity.this.captureStillPicture();
-            } else {
-              ShootingActivity.this.runPrecaptureSequence();
-            }
-          }
-          break;
-        case WAITING_EXPOSURE_PRECAPTURE:
-          // CONTROL_AE_STATE can be null on some devices
-          autoExposureState = result.get(CaptureResult.CONTROL_AE_STATE);
-          if (autoExposureState == null || autoExposureState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE || autoExposureState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-            ShootingActivity.this.cameraState = CameraState.WAITING_EXPOSURE_NON_PRECAPTURE;
-          }
-          break;
-        case WAITING_EXPOSURE_NON_PRECAPTURE:
-          // CONTROL_AE_STATE can be null on some devices
-          autoExposureState = result.get(CaptureResult.CONTROL_AE_STATE);
-          if (autoExposureState == null || autoExposureState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-            ShootingActivity.this.cameraState = CameraState.PICTURE_TAKEN;
-            ShootingActivity.this.captureStillPicture();
-          }
-          break;
-      }
-    }
-
-    @Override
-    public void onCaptureProgressed(@NonNull CameraCaptureSession session,
-                                    @NonNull CaptureRequest request,
-                                    @NonNull CaptureResult partialResult) {
-      process(partialResult);
-    }
-
-    @Override
-    public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                   @NonNull CaptureRequest request,
-                                   @NonNull TotalCaptureResult result) {
-      process(result);
-    }
-
-  };
-
-  private final CameraCaptureSession.StateCallback sessionStateCallback = new CameraCaptureSession.StateCallback() {
-
-    @Override
-    public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-      // The camera is already closed
-      if (ShootingActivity.this.cameraDevice == null) {
-        return;
-      }
-
-      // When the session is ready, we start displaying the preview.
-      ShootingActivity.this.captureSession = cameraCaptureSession;
-      try {
-        // Auto focus should be continuous for camera preview.
-        ShootingActivity.this.previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-
-        // Finally, we start displaying the camera preview.
-        // Save the previewRequest for when we go back to the original state after taking a picture, for example
-        ShootingActivity.this.previewRequest = ShootingActivity.this.previewRequestBuilder.build();
-        ShootingActivity.this.captureSession.setRepeatingRequest(ShootingActivity.this.previewRequest, ShootingActivity.this.sessionCaptureCallback, null);
-      } catch (CameraAccessException e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-      // showToast("Failed");
-    }
-  };
-
-  private final CameraDevice.StateCallback cameraStateCallback = new CameraDevice.StateCallback() {
-
-    @Override
-    public void onOpened(@NonNull CameraDevice cameraDevice) {
-      ShootingActivity.this.cameraDevice = cameraDevice;
-      ShootingActivity.this.cameraState = CameraState.PREVIEW;
-
-      Surface previewSurface = new Surface(ShootingActivity.this.textureView.getSurfaceTexture());
-      Log.i("onOpened", "ShootingActivity.this.imageReader.getSurface()");
-      Surface pictureSurface = ShootingActivity.this.imageReader.getSurface();
-      List<Surface> outputs = new ArrayList<>();
-      outputs.add(previewSurface);
-      outputs.add(pictureSurface);
-
-      try {
-        ShootingActivity.this.previewRequestBuilder = ShootingActivity.this.cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-        ShootingActivity.this.previewRequestBuilder.addTarget(previewSurface);
-        ShootingActivity.this.cameraDevice.createCaptureSession(outputs, ShootingActivity.this.sessionStateCallback, null);
-      } catch (CameraAccessException e) {
-        e.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-      cameraDevice.close();
-      ShootingActivity.this.cameraDevice = null;
-    }
-
-    @Override
-    public void onError(@NonNull CameraDevice cameraDevice, int error) {
-      cameraDevice.close();
-      ShootingActivity.this.cameraDevice = null;
-      ShootingActivity.this.finish();
-    }
-  };
-
   /**
    * This callback will be called when a still image is ready to be saved.
    */
@@ -232,6 +110,112 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       }
     }
   };
+
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    this.setContentView(R.layout.shooting_layout);
+    this.setup();
+  }
+
+  @Override
+  protected void onResume() {
+    Log.i("ACTIVITY", "onResume");
+    super.onResume();
+    this.registerSensors();
+    // When the screen is turned off and turned back on, the SurfaceTexture is already
+    // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
+    // a camera and start preview from here (otherwise, we wait until the surface is ready in
+    // the SurfaceTextureListener).
+    if (this.textureView.isAvailable()) {
+      Log.i("onResume", "openCamera");
+      try {
+        this.openCamera();
+      } catch (CameraAccessException e) {
+        e.printStackTrace();
+      }
+    } else {
+      this.textureView.setSurfaceTextureListener(this);
+    }
+  }
+
+  @Override
+  protected void onPause() {
+    Log.i("ACTIVITY", "onPause");
+    super.onPause();
+    this.closeCamera();
+    this.sensorManager.unregisterListener(this);
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    if (requestCode == ShootingActivity.REQUEST_ALL_PERMISSIONS) return;
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent event) {
+    this.gestureDetector.onTouchEvent(event);
+    return super.onTouchEvent(event);
+  }
+
+  @Override
+  public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) {
+      this.goFullscreen();
+    }
+  }
+
+  @Override
+  public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+    try {
+      this.openCamera();
+    } catch (CameraAccessException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Override
+  public void onSensorChanged(SensorEvent event) {
+    if (this.accelerometer != null && event.sensor.equals(this.accelerometer)) {
+      this.accelerometerValues = event.values;
+    } else if (this.gyroscope != null && event.sensor.equals(this.gyroscope)) {
+      this.gyroscopeValues = event.values;
+    } else if (this.rotation != null && event.sensor.equals(this.rotation)) {
+      this.rotationValues = event.values;
+    }
+    StringBuffer sb = new StringBuffer("Sensor values: ");
+    for (int i = 0; i < event.values.length; i++) {
+      if (i > 0) sb.append(", ");
+      sb.append(event.values[i]);
+    }
+    Log.i("SENSOR", sb.toString());
+  }
+
+  @Override
+  public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    if (sensor.equals(this.accelerometer)) {
+      this.accelerometerAccuracy = accuracy;
+    } else if (sensor.equals(this.gyroscope)) {
+      this.gyroscopeAccuracy = accuracy;
+    } else if (sensor.equals(this.rotation)) {
+      this.rotationAccuracy = accuracy;
+    }
+  }
+
+  @Override
+  public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+  }
+
+  @Override
+  public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+    return false;
+  }
+
+  @Override
+  public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+  }
 
   protected String uniqueImageName() {
     return "JPEG_" + new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(Calendar.getInstance().getTime()) + ".jpg";
@@ -288,7 +272,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
    * Run the precapture sequence for capturing a still image. This method should be called when
    * we get a response in captureCallback from takePicture().
    */
-  private void runPrecaptureSequence() {
+  protected void runPrecaptureSequence() {
     try {
       // This is how to tell the camera to trigger.
       ShootingActivity.this.previewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
@@ -317,7 +301,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   /**
    * Capture a still picture
    */
-  private void captureStillPicture() {
+  protected void captureStillPicture() {
     try {
       if (ShootingActivity.this.cameraDevice == null) {
         return;
@@ -461,33 +445,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
-  @Override
-  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-    if (requestCode == ShootingActivity.REQUEST_ALL_PERMISSIONS) return;
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-  }
-
-  @Override
-  public boolean onTouchEvent(MotionEvent event) {
-    this.gestureDetector.onTouchEvent(event);
-    return super.onTouchEvent(event);
-  }
-
-  @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    this.setContentView(R.layout.shooting_layout);
-    this.setup();
-  }
-
-  @Override
-  public void onWindowFocusChanged(boolean hasFocus) {
-    super.onWindowFocusChanged(hasFocus);
-    if (hasFocus) {
-      this.goFullscreen();
-    }
-  }
-
   private void goFullscreen() {
     this.textureView.setSystemUiVisibility(
         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -532,96 +489,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
-  @Override
-  public void onSensorChanged(SensorEvent event) {
-    if (this.accelerometer != null && event.sensor.equals(this.accelerometer)) {
-      this.accelerometerValues = event.values;
-      // ((TextView) this.findViewById(R.id.accelerometer_x_val)).setText(String.format("%.3f", event.values[0]));
-      // ((TextView) this.findViewById(R.id.accelerometer_y_val)).setText(String.format("%.3f", event.values[1]));
-      // ((TextView) this.findViewById(R.id.accelerometer_z_val)).setText(String.format("%.3f", event.values[2]));
-    } else if (this.gyroscope != null && event.sensor.equals(this.gyroscope)) {
-      this.gyroscopeValues = event.values;
-      // ((TextView) this.findViewById(R.id.gyroscope_x_val)).setText(String.format("%.3f", event.values[0]));
-      // ((TextView) this.findViewById(R.id.gyroscope_y_val)).setText(String.format("%.3f", event.values[1]));
-      // ((TextView) this.findViewById(R.id.gyroscope_z_val)).setText(String.format("%.3f", event.values[2]));
-    } else if (this.rotation != null && event.sensor.equals(this.rotation)) {
-      this.rotationValues = event.values;
-      // ((TextView) this.findViewById(R.id.rotation_x_val)).setText(String.format("%.3f", event.values[0]));
-      // ((TextView) this.findViewById(R.id.rotation_y_val)).setText(String.format("%.3f", event.values[1]));
-      // ((TextView) this.findViewById(R.id.rotation_z_val)).setText(String.format("%.3f", event.values[2]));
-      // ((TextView) this.findViewById(R.id.rotation_scalar_val)).setText(String.format("%.3f", event.values[2]));
-    }
-    StringBuffer sb = new StringBuffer("Sensor values: ");
-    for (int i = 0; i < event.values.length; i++) {
-      if (i > 0) sb.append(", ");
-      sb.append(event.values[i]);
-    }
-    Log.i("SENSOR", sb.toString());
-  }
-
-  @Override
-  public void onAccuracyChanged(Sensor sensor, int accuracy) {
-    // String acc = null;
-    // switch (accuracy) {
-    //   case SensorManager.SENSOR_STATUS_ACCURACY_HIGH:
-    //     acc = "high";
-    //     break;
-    //   case SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM:
-    //     acc = "medium";
-    //     break;
-    //   case SensorManager.SENSOR_STATUS_ACCURACY_LOW:
-    //     acc = "low";
-    //     break;
-    //   case SensorManager.SENSOR_STATUS_UNRELIABLE:
-    //     acc = "unreliable";
-    //     break;
-    //   case SensorManager.SENSOR_STATUS_NO_CONTACT:
-    //     acc = "no contact";
-    //     break;
-    //   default:
-    //     acc = "error";
-    // }
-    if (sensor.equals(this.accelerometer)) {
-      this.accelerometerAccuracy = accuracy;
-      // ((TextView) this.findViewById(R.id.accelerometer_acc_val)).setText(acc);
-    } else if (sensor.equals(this.gyroscope)) {
-      this.gyroscopeAccuracy = accuracy;
-      // ((TextView) this.findViewById(R.id.gyroscope_acc_val)).setText(acc);
-    } else if (sensor.equals(this.rotation)) {
-      this.rotationAccuracy = accuracy;
-      // ((TextView) this.findViewById(R.id.rotation_acc_val)).setText(acc);
-    }
-  }
-
-  @Override
-  protected void onResume() {
-    Log.i("ACTIVITY", "onResume");
-    super.onResume();
-    this.registerSensors();
-    // When the screen is turned off and turned back on, the SurfaceTexture is already
-    // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
-    // a camera and start preview from here (otherwise, we wait until the surface is ready in
-    // the SurfaceTextureListener).
-    if (this.textureView.isAvailable()) {
-      Log.i("onResume", "openCamera");
-      try {
-        this.openCamera();
-      } catch (CameraAccessException e) {
-        e.printStackTrace();
-      }
-    } else {
-      this.textureView.setSurfaceTextureListener(this);
-    }
-  }
-
-  @Override
-  protected void onPause() {
-    Log.i("ACTIVITY", "onPause");
-    super.onPause();
-    this.closeCamera();
-    this.sensorManager.unregisterListener(this);
-  }
-
   /**
    * Compares two {@code Size}s based on their areas.
    */
@@ -633,25 +500,67 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
-  @Override
-  public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-    try {
-      this.openCamera();
-    } catch (CameraAccessException e) {
-      e.printStackTrace();
-    }
+  public CameraState getCameraState() {
+    return cameraState;
   }
 
-  @Override
-  public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+  public void setCameraState(CameraState cameraState) {
+    this.cameraState = cameraState;
   }
 
-  @Override
-  public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-    return false;
+  public CameraDevice getCameraDevice() {
+    return cameraDevice;
   }
 
-  @Override
-  public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+  public void setCameraDevice(CameraDevice cameraDevice) {
+    this.cameraDevice = cameraDevice;
+  }
+
+  public TextureView getTextureView() {
+    return textureView;
+  }
+
+  public void setTextureView(TextureView textureView) {
+    this.textureView = textureView;
+  }
+
+  public ImageReader getImageReader() {
+    return imageReader;
+  }
+
+  public void setImageReader(ImageReader imageReader) {
+    this.imageReader = imageReader;
+  }
+
+  public CaptureRequest.Builder getPreviewRequestBuilder() {
+    return previewRequestBuilder;
+  }
+
+  public void setPreviewRequestBuilder(CaptureRequest.Builder previewRequestBuilder) {
+    this.previewRequestBuilder = previewRequestBuilder;
+  }
+
+  public void setCaptureSession(CameraCaptureSession captureSession) {
+    this.captureSession = captureSession;
+  }
+
+  public CameraCaptureSession getCaptureSession() {
+    return captureSession;
+  }
+
+  public void setPreviewRequest(CaptureRequest previewRequest) {
+    this.previewRequest = previewRequest;
+  }
+
+  public CaptureRequest getPreviewRequest() {
+    return previewRequest;
+  }
+
+  public SessionCaptureCallback getSessionCaptureCallback() {
+    return sessionCaptureCallback;
+  }
+
+  public SessionStateCallback getSessionStateCallback() {
+    return sessionStateCallback;
   }
 }
