@@ -26,6 +26,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -36,6 +37,10 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,7 +54,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener {
+public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
   private String cameraId;
   private File latestPhotoFile;
@@ -61,12 +66,14 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private CameraManager cameraManager;
   private SensorManager sensorManager;
   private CaptureRequest previewRequest;
+  private GoogleApiClient googleApiClient;
   private CameraCaptureSession captureSession;
   private GestureDetectorCompat gestureDetector;
   private Sensor accelerometer, gyroscope, rotation;
   private CaptureRequest.Builder previewRequestBuilder;
   private float[] accelerometerValues, gyroscopeValues, rotationValues;
   private Integer accelerometerAccuracy, gyroscopeAccuracy, rotationAccuracy;
+
 
   private final CameraStateCallback cameraStateCallback = new CameraStateCallback(this);
   private final SessionStateCallback sessionStateCallback = new SessionStateCallback(this);
@@ -82,6 +89,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
    * Conversion from screen rotation to JPEG orientation.
    */
   private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
   static {
     ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_0, 90);
     ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_90, 0);
@@ -115,7 +123,21 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     super.onCreate(savedInstanceState);
     this.setContentView(R.layout.shooting_layout);
     this.setup();
+    this.setupGoogleApiClient();
   }
+
+  @Override
+  protected void onStart() {
+    super.onStart();
+    this.googleApiClient.connect();
+  }
+
+  @Override
+  protected void onStop() {
+    super.onStop();
+    this.googleApiClient.disconnect();
+  }
+
 
   @Override
   protected void onResume() {
@@ -144,6 +166,18 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     super.onPause();
     this.closeCamera();
     this.sensorManager.unregisterListener(this);
+  }
+
+  @Override
+  public void onConnected(@Nullable Bundle bundle) {
+  }
+
+  @Override
+  public void onConnectionSuspended(int i) {
+  }
+
+  @Override
+  public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
   }
 
   @Override
@@ -352,6 +386,16 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       this.captureSession.setRepeatingRequest(this.previewRequest, this.sessionCaptureCallback, null);
     } catch (CameraAccessException e) {
       e.printStackTrace();
+    }
+  }
+
+  private void setupGoogleApiClient() {
+    if (this.googleApiClient == null) {
+      this.googleApiClient = new GoogleApiClient.Builder(this)
+          .addConnectionCallbacks(this)
+          .addOnConnectionFailedListener(this)
+          .addApi(LocationServices.API)
+          .build();
     }
   }
 
