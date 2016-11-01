@@ -3,7 +3,6 @@ package com.gbrl.learningcam2;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraDevice;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.Surface;
 
 import java.util.ArrayList;

@@ -51,8 +51,6 @@ import java.util.List;
 
 public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener {
 
-  private static final int REQUEST_ALL_PERMISSIONS = 1;
-
   private String cameraId;
   private File latestPhotoFile;
   private int sensorOrientation;
@@ -74,15 +72,16 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private final SessionStateCallback sessionStateCallback = new SessionStateCallback(this);
   private final SessionCaptureCallback sessionCaptureCallback = new SessionCaptureCallback(this);
 
-  /**
-   * Conversion from screen rotation to JPEG orientation.
-   */
-  private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+  private static final String LOG_TAG = "SA";
+  private static final int REQUEST_ALL_PERMISSIONS = 1;
   private static final String[] requiredPermissions = {
       Manifest.permission.CAMERA
       , Manifest.permission.WRITE_EXTERNAL_STORAGE
   };
-
+  /**
+   * Conversion from screen rotation to JPEG orientation.
+   */
+  private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
   static {
     ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_0, 90);
     ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_90, 0);
@@ -120,7 +119,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   @Override
   protected void onResume() {
-    Log.i("ACTIVITY", "onResume");
+    Log.i(LOG_TAG, "onResume");
     super.onResume();
     this.registerSensors();
     // When the screen is turned off and turned back on, the SurfaceTexture is already
@@ -128,7 +127,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     // a camera and start preview from here (otherwise, we wait until the surface is ready in
     // the SurfaceTextureListener).
     if (this.textureView.isAvailable()) {
-      Log.i("onResume", "openCamera");
+      Log.i(LOG_TAG, "onResume textureView is available, openCamera");
       try {
         this.openCamera();
       } catch (CameraAccessException e) {
@@ -141,7 +140,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   @Override
   protected void onPause() {
-    Log.i("ACTIVITY", "onPause");
+    Log.i(LOG_TAG, "onPause");
     super.onPause();
     this.closeCamera();
     this.sensorManager.unregisterListener(this);
@@ -190,7 +189,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       if (i > 0) sb.append(", ");
       sb.append(event.values[i]);
     }
-    Log.i("SENSOR", sb.toString());
+    Log.i(LOG_TAG, "onSensorChanged " + sb.toString());
   }
 
   @Override
@@ -225,8 +224,8 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     this.latestPhotoFile = null;
     File publicPicturesDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
     File icPicturesDirectory = new File(publicPicturesDirectory.getPath() + File.separator + getResources().getString(R.string.pictures_directory));
-    Log.i("env pubextpic", publicPicturesDirectory.getPath());
-    Log.i("ic dir", icPicturesDirectory.getPath());
+    Log.i(LOG_TAG, "getExternalStoragePublicDirectory: " + publicPicturesDirectory.getPath());
+    Log.i(LOG_TAG, "icPicturesDirectory: " + icPicturesDirectory.getPath());
     if (icPicturesDirectory.exists() || icPicturesDirectory.mkdir()) {
       this.latestPhotoFile = new File(icPicturesDirectory.getPath() + File.separator + this.uniqueImageName());
     }
@@ -321,7 +320,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
-          Log.d("capt_done", "local onCaptureCompleted");
+          Log.d(LOG_TAG, "captureStillPicture captureCallback.onCaptureCompleted");
           ShootingActivity.this.unlockFocus();
         }
       };
@@ -333,7 +332,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
-  public void broadcastNewPicture() {
+  private void broadcastNewPicture() {
     Uri contentUri = Uri.fromFile(this.latestPhotoFile);
     Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, contentUri);
     this.sendBroadcast(mediaScanIntent);
@@ -382,6 +381,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   }
 
   private void setupCamera() throws CameraAccessException {
+    Log.i(LOG_TAG, "setupCamera");
     for (String cameraId : this.cameraManager.getCameraIdList()) {
       CameraCharacteristics characteristics = this.cameraManager.getCameraCharacteristics(cameraId);
 
@@ -399,7 +399,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
       Size[] sizes = configurationMap.getOutputSizes(ImageFormat.JPEG);
       Size largest = Collections.max(Arrays.asList(sizes), new CompareSizesByArea());
-      Log.i("for", "onSurfaceTextureAvailable ImageReader.newInstance");
       this.imageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
       this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
 
@@ -468,24 +467,24 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   private void registerSensors() {
     if (this.accelerometer != null) {
-      Log.i("REGISTER", "Accelerometer");
+      Log.i(LOG_TAG, "registerSensors: Accelerometer");
       this.sensorManager.registerListener(this, this.accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
     } else {
-      Log.i("REGISTER", "Accelerometer not available!");
+      Log.i(LOG_TAG, "registerSensors: Accelerometer not available!");
     }
 
     if (this.gyroscope != null) {
-      Log.i("REGISTER", "Gyroscope");
+      Log.i(LOG_TAG, "registerSensors: Gyroscope");
       this.sensorManager.registerListener(this, this.gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
     } else {
-      Log.i("REGISTER", "Gyroscope not available!");
+      Log.i(LOG_TAG, "registerSensors: Gyroscope not available!");
     }
 
     if (this.rotation != null) {
-      Log.i("REGISTER", "Rotation vector");
+      Log.i(LOG_TAG, "registerSensors: Rotation vector");
       this.sensorManager.registerListener(this, this.rotation, SensorManager.SENSOR_DELAY_NORMAL);
     } else {
-      Log.i("REGISTER", "Rotation vector not available!");
+      Log.i(LOG_TAG, "registerSensors: Rotation vector not available!");
     }
   }
 
