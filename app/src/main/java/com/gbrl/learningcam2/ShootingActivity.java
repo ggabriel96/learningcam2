@@ -20,6 +20,7 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.location.Location;
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
@@ -169,7 +170,19 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   }
 
   @Override
-  public void onConnected(@Nullable Bundle bundle) {
+  public void onConnected(@Nullable Bundle bundle) throws SecurityException {
+    Location location = LocationServices.FusedLocationApi.getLastLocation(this.googleApiClient);
+    if (location != null) {
+      StringBuffer sb = new StringBuffer("Location:");
+      sb.append("\nLatitude: ").append(location.getLatitude()).append("\nLongitude: ").append(location.getLongitude())
+          .append("\nAltitude: ").append(location.getAltitude()).append("\nAccuracy: ").append(location.getAccuracy())
+          .append("\nBearing: ").append(location.getBearing()).append("\nProvider: ").append(location.getProvider())
+          .append("\nTime: ").append(location.getTime()).append("\nNumber of satellites: ");
+      if (location.getExtras() != null) {
+        sb.append(location.getExtras().get("satellites"));
+      }
+      Log.i(LOG_TAG, sb.toString());
+    }
   }
 
   @Override
