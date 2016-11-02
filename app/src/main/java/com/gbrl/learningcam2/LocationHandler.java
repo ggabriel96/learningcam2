@@ -69,15 +69,17 @@ public class LocationHandler implements GoogleApiClient.ConnectionCallbacks, Goo
   }
 
   /**
-   * Attempts to request location updates if the GoogleApiClient is connected and this
-   * wasn't already requesting location updates. Upon the result of the request, sets
-   * <code>isRequestingLocationUpdates</code> to the result status (currently, the only way of
-   * knowing the attempt was successful is later checking if this variable is <code>Boolean.TRUE</code>).
+   * Attempts to stop location updates if the GoogleApiClient is connected and
+   * <code>isRequestingLocationUpdates</code> is <code>Boolean.FALSE</code>. Upon
+   * the result of the request, sets <code>isRequestingLocationUpdates</code> to
+   * the result status (currently, the only way of knowing the attempt was
+   * successful is later checking if this variable is <code>Boolean.TRUE</code>).
    *
    * @return <code>Boolean.TRUE</code> if the GoogleApiClient is connected and this
    * wasn't already requesting location updates. <code>Boolean.FALSE</code> otherwise
    * @throws SecurityException if the user hasn't given the app the location permission
    * @TODO provide a method that receives a ResultCallback
+   * @TODO check for location permission just as I do with camera permission
    */
   protected Boolean startLocationUpdates() throws SecurityException {
     Log.d(LOG_TAG, "startLocationUpdates");
@@ -99,19 +101,23 @@ public class LocationHandler implements GoogleApiClient.ConnectionCallbacks, Goo
   }
 
   /**
-   * Attempts to stop location updates. Upon the result of the request, sets
-   * <code>isRequestingLocationUpdates</code> to the result status (currently, the only way of
-   * knowing the attempt was successful is later checking if this variable is <code>Boolean.FALSE</code>).
+   * Attempts to stop location updates if the GoogleApiClient is connected and
+   * <code>isRequestingLocationUpdates</code> is <code>Boolean.TRUE</code>. Upon
+   * the result of therequest, sets <code>isRequestingLocationUpdates</code> to the
+   * result status (currently, the only way of knowing the attempt was successful
+   * is later checking if this variable is <code>Boolean.FALSE</code>).
    */
   protected void stopLocationUpdates() {
     Log.d(LOG_TAG, "stopLocationUpdates");
-    PendingResult<Status> pendingStatus = LocationServices.FusedLocationApi.removeLocationUpdates(this.googleApiClient, this);
-    pendingStatus.setResultCallback(new ResultCallback<Status>() {
-      @Override
-      public void onResult(@NonNull Status status) {
-        LocationHandler.this.isRequestingLocationUpdates = !status.isSuccess();
-      }
-    });
+    if (this.googleApiClient.isConnected() && this.isRequestingLocationUpdates) {
+      PendingResult<Status> pendingStatus = LocationServices.FusedLocationApi.removeLocationUpdates(this.googleApiClient, this);
+      pendingStatus.setResultCallback(new ResultCallback<Status>() {
+        @Override
+        public void onResult(@NonNull Status status) {
+          LocationHandler.this.isRequestingLocationUpdates = !status.isSuccess();
+        }
+      });
+    }
   }
 
   private void logLocation(Location location) {

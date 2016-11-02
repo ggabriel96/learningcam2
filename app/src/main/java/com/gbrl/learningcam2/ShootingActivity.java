@@ -6,6 +6,10 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -422,6 +426,61 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
+  protected int getDisplayRotation() {
+    Log.d(LOG_TAG, "getDisplayRotation");
+    return this.getWindowManager().getDefaultDisplay().getRotation();
+  }
+
+  protected void logDisplayRotation(int rotation) {
+    String r = null;
+    switch (rotation) {
+      case Surface.ROTATION_0:
+        r = "ROTATION_0";
+        break;
+      case Surface.ROTATION_90:
+        r = "ROTATION_90";
+        break;
+      case Surface.ROTATION_180:
+        r = "ROTATION_180";
+        break;
+      case Surface.ROTATION_270:
+        r = "ROTATION_270";
+        break;
+      default:
+        r = "UNKNOWN";
+        break;
+    }
+    Log.d(LOG_TAG, "logDisplayRotation: " + r);
+  }
+
+  private void rotationTransform() {
+    Log.d(LOG_TAG, "rotationTransform");
+    int rotation = getDisplayRotation();
+    this.logDisplayRotation(rotation);
+    if (rotation != Surface.ROTATION_0) {
+      Matrix matrix = new Matrix();
+      if (rotation == Surface.ROTATION_180) {
+        matrix.postRotate(180, this.textureView.getWidth() / 2.0f, this.textureView.getHeight() / 2.0f);
+      } else {
+        Point realSize = new Point();
+        this.getWindowManager().getDefaultDisplay().getRealSize(realSize);
+        RectF viewRect = new RectF(0.0f, 0.0f, (float) realSize.x, (float) realSize.y);
+        float centerX = viewRect.centerX();
+        float centerY = viewRect.centerY();
+
+        RectF bufferRect = new RectF(0, 0, this.imageReader.getHeight(), this.imageReader.getWidth());
+        bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+        matrix.setRectToRect(new RectF(viewRect), bufferRect, Matrix.ScaleToFit.FILL);
+
+        float scaleX = (float) this.textureView.getHeight() / this.imageReader.getHeight();
+        float scaleY = (float) this.textureView.getWidth() / this.imageReader.getWidth();
+        matrix.postScale(scaleX, scaleY, centerX, centerY);
+        matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+      }
+      this.textureView.setTransform(matrix);
+    }
+  }
+
   private void setupCamera() throws CameraAccessException {
     Log.d(LOG_TAG, "setupCamera");
     for (String cameraId : this.cameraManager.getCameraIdList()) {
@@ -441,8 +500,11 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
       Size[] sizes = configurationMap.getOutputSizes(ImageFormat.JPEG);
       Size largest = Collections.max(Arrays.asList(sizes), new CompareSizesByArea());
+
       this.imageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
       this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
+
+      this.rotationTransform();
 
       this.cameraId = cameraId;
       break;
