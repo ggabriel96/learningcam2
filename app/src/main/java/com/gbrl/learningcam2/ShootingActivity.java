@@ -20,14 +20,12 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.location.Location;
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -38,10 +36,6 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -55,7 +49,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener {
 
   private String cameraId;
   private File latestPhotoFile;
@@ -67,7 +61,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private CameraManager cameraManager;
   private SensorManager sensorManager;
   private CaptureRequest previewRequest;
-  private GoogleApiClient googleApiClient;
   private CameraCaptureSession captureSession;
   private GestureDetectorCompat gestureDetector;
   private Sensor accelerometer, gyroscope, rotation;
@@ -76,6 +69,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private Integer accelerometerAccuracy, gyroscopeAccuracy, rotationAccuracy;
 
 
+  private final LocationHandler locationHandler = new LocationHandler(this);
   private final CameraStateCallback cameraStateCallback = new CameraStateCallback(this);
   private final SessionStateCallback sessionStateCallback = new SessionStateCallback(this);
   private final SessionCaptureCallback sessionCaptureCallback = new SessionCaptureCallback(this);
@@ -124,21 +118,20 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     super.onCreate(savedInstanceState);
     this.setContentView(R.layout.shooting_layout);
     this.setup();
-    this.setupGoogleApiClient();
+    this.locationHandler.build();
   }
 
   @Override
   protected void onStart() {
     super.onStart();
-    this.googleApiClient.connect();
+    this.locationHandler.connect();
   }
 
   @Override
   protected void onStop() {
     super.onStop();
-    this.googleApiClient.disconnect();
+    this.locationHandler.disconnect();
   }
-
 
   @Override
   protected void onResume() {
@@ -167,30 +160,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     super.onPause();
     this.closeCamera();
     this.sensorManager.unregisterListener(this);
-  }
-
-  @Override
-  public void onConnected(@Nullable Bundle bundle) throws SecurityException {
-    Location location = LocationServices.FusedLocationApi.getLastLocation(this.googleApiClient);
-    if (location != null) {
-      StringBuffer sb = new StringBuffer("Location:");
-      sb.append("\nLatitude: ").append(location.getLatitude()).append("\nLongitude: ").append(location.getLongitude())
-          .append("\nAltitude: ").append(location.getAltitude()).append("\nAccuracy: ").append(location.getAccuracy())
-          .append("\nBearing: ").append(location.getBearing()).append("\nProvider: ").append(location.getProvider())
-          .append("\nTime: ").append(location.getTime()).append("\nNumber of satellites: ");
-      if (location.getExtras() != null) {
-        sb.append(location.getExtras().get("satellites"));
-      }
-      Log.i(LOG_TAG, sb.toString());
-    }
-  }
-
-  @Override
-  public void onConnectionSuspended(int i) {
-  }
-
-  @Override
-  public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
   }
 
   @Override
@@ -399,16 +368,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       this.captureSession.setRepeatingRequest(this.previewRequest, this.sessionCaptureCallback, null);
     } catch (CameraAccessException e) {
       e.printStackTrace();
-    }
-  }
-
-  private void setupGoogleApiClient() {
-    if (this.googleApiClient == null) {
-      this.googleApiClient = new GoogleApiClient.Builder(this)
-          .addConnectionCallbacks(this)
-          .addOnConnectionFailedListener(this)
-          .addApi(LocationServices.API)
-          .build();
     }
   }
 
