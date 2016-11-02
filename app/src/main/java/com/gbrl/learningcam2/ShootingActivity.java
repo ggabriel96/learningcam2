@@ -470,7 +470,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
         RectF bufferRect = new RectF(0, 0, this.imageReader.getHeight(), this.imageReader.getWidth());
         bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
-        matrix.setRectToRect(new RectF(viewRect), bufferRect, Matrix.ScaleToFit.FILL);
+        matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
 
         float scaleX = (float) this.textureView.getHeight() / this.imageReader.getHeight();
         float scaleY = (float) this.textureView.getWidth() / this.imageReader.getWidth();
