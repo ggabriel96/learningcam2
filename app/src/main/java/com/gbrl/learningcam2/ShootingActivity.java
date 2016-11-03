@@ -5,10 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
@@ -40,6 +39,8 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -53,12 +54,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SensorEventListener {
+public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener,
+    SensorEventListener {
 
   private String cameraId;
   private File latestPhotoFile;
   private int sensorOrientation;
   private ImageReader imageReader;
+  private float sensorAspectRatio;
   private TextureView textureView;
   private CameraState cameraState;
   private CameraDevice cameraDevice;
@@ -67,6 +70,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private CaptureRequest previewRequest;
   private CameraCaptureSession captureSession;
   private GestureDetectorCompat gestureDetector;
+  private OrientationManager orientationManager;
   private Sensor accelerometer, gyroscope, rotation;
   private CaptureRequest.Builder previewRequestBuilder;
   private float[] accelerometerValues, gyroscopeValues, rotationValues;
@@ -124,6 +128,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     super.onCreate(savedInstanceState);
     this.setContentView(R.layout.shooting_layout);
     this.setup();
+    this.setRotationAnimation();
     this.locationHandler.build();
   }
 
@@ -139,6 +144,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "onResume");
     super.onResume();
     this.registerSensors();
+    this.orientationManager.enable();
     this.locationHandler.startLocationUpdates();
     // When the screen is turned off and turned back on, the SurfaceTexture is already
     // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
@@ -161,6 +167,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "onPause");
     super.onPause();
     this.closeCamera();
+    this.orientationManager.disable();
     this.locationHandler.stopLocationUpdates();
     this.sensorManager.unregisterListener(this);
   }
@@ -176,6 +183,18 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "onDestroy");
     super.onDestroy();
     this.locationHandler.disconnect();
+  }
+
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    Log.d(LOG_TAG, "onConfigurationChanged");
+    super.onConfigurationChanged(newConfig);
+    this.configureTransform();
+    /*if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+      Log.d(LOG_TAG, "LANDSCAPE");
+    } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+      Log.d(LOG_TAG, "PORTRAIT");
+    }*/
   }
 
   @Override
@@ -252,6 +271,13 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   @Override
   public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+  }
+
+  private void setRotationAnimation() {
+    Window window = this.getWindow();
+    WindowManager.LayoutParams windowAttributes = window.getAttributes();
+    windowAttributes.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_CROSSFADE;
+    window.setAttributes(windowAttributes);
   }
 
   protected String uniqueImageName() {
@@ -419,6 +445,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   private void setup() {
     Log.d(LOG_TAG, "setup");
+    this.orientationManager = new OrientationManager(this);
     this.gestureDetector = new GestureDetectorCompat(this, new GestureListener(this));
     this.cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
     this.textureView = (TextureView) this.findViewById(R.id.textureView);
@@ -471,25 +498,29 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "logDisplayRotation: " + r);
   }
 
-  private void rotationTransform() {
-    Log.d(LOG_TAG, "rotationTransform");
-    int rotation = getDisplayRotation();
-    Matrix matrix = this.textureView.getMatrix();
-    float baseAxis = (float) Math.min(this.textureView.getWidth(), this.textureView.getHeight()),
-        aspectRatio = (float) this.imageReader.getWidth() / this.imageReader.getHeight();
-    RectF view = new RectF(0.0f, 0.0f, (float) this.textureView.getWidth(),
-                           (float) this.textureView.getHeight()), scaledView = null;
+  private void configureTransform() {
+    Log.d(LOG_TAG, "configureTransform");
+    if (this.textureView == null || !this.textureView.isAvailable() || this.imageReader == null) return;
+    Matrix matrix = new Matrix();
+    int rotation = 0, displayRotation = getDisplayRotation(); this.logDisplayRotation(displayRotation);
+    float baseAxis = (float) Math.min(this.textureView.getWidth(), this.textureView.getHeight());
+    RectF view = new RectF(0.0f, 0.0f, (float) this.textureView.getHeight(), (float) this.textureView.getWidth()),
+        scaledView = new RectF(0, 0, baseAxis, baseAxis * this.sensorAspectRatio);
 
-    this.logDisplayRotation(rotation);
+    Log.d(LOG_TAG, "textureView: (" + this.textureView.getWidth() + ", " + this.textureView.getHeight() + ")");
+    Log.d(LOG_TAG, "imageReader: (" + this.imageReader.getWidth() + ", " + this.imageReader.getHeight() + ")");
     Log.d(LOG_TAG, "view: (" + view.width() + ", " + view.height() + ")");
-    Log.d(LOG_TAG, "aspectRatio: " + aspectRatio);
-    scaledView = new RectF(0, 0, baseAxis, baseAxis * aspectRatio);
     Log.d(LOG_TAG, "scaledView: (" + scaledView.width() + ", " + scaledView.height() + ")");
+    Log.d(LOG_TAG, "aspectRatio: " + this.sensorAspectRatio);
     scaledView.offset(view.centerX() - scaledView.centerX(), view.centerY() - scaledView.centerY());
     matrix.setRectToRect(view, scaledView, Matrix.ScaleToFit.FILL);
-    if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-      rotation -= 2;
+    if (displayRotation == Surface.ROTATION_90 || displayRotation == Surface.ROTATION_270) {
+      rotation = displayRotation - 2;
+    } else {
+      rotation = displayRotation;
     }
+    Log.d(LOG_TAG, "displayRotation: " + displayRotation);
+    Log.d(LOG_TAG, "rotation: " + rotation);
     matrix.postRotate(90 * rotation, view.centerX(), view.centerY());
     this.textureView.setTransform(matrix);
   }
@@ -519,7 +550,8 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
           ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
       this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
 
-      this.rotationTransform();
+      this.sensorAspectRatio = (float) this.imageReader.getWidth() / this.imageReader.getHeight();
+      this.configureTransform();
 
       this.cameraId = cameraId;
       break;
