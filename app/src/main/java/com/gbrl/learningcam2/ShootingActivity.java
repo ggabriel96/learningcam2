@@ -61,7 +61,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   private File latestPhotoFile;
   private int sensorOrientation;
   private ImageReader imageReader;
-  private float sensorAspectRatio;
   private TextureView textureView;
   private CameraState cameraState;
   private CameraDevice cameraDevice;
@@ -189,12 +188,11 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   public void onConfigurationChanged(Configuration newConfig) {
     Log.d(LOG_TAG, "onConfigurationChanged");
     super.onConfigurationChanged(newConfig);
-    this.configureTransform(Boolean.FALSE);
-    /*if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+    if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
       Log.d(LOG_TAG, "LANDSCAPE");
     } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
       Log.d(LOG_TAG, "PORTRAIT");
-    }*/
+    }
   }
 
   @Override
@@ -305,13 +303,13 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   private void saveImage(Image image) {
     Log.d(LOG_TAG, "saveImage");
-    if (ShootingActivity.this.latestPhotoFile == null || image == null) return;
+    if (this.latestPhotoFile == null || image == null) return;
     ByteBuffer buffer = image.getPlanes()[0].getBuffer();
     byte[] bytes = new byte[buffer.remaining()];
     buffer.get(bytes);
     FileOutputStream output = null;
     try {
-      output = new FileOutputStream(ShootingActivity.this.latestPhotoFile);
+      output = new FileOutputStream(this.latestPhotoFile);
       output.write(bytes);
     } catch (IOException e) {
       e.printStackTrace();
@@ -331,13 +329,10 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "takePicture");
     try {
       // Tell captureCallback to wait for the lock.
-      ShootingActivity.this.cameraState = CameraState.WAITING_FOCUS_LOCK;
+      this.cameraState = CameraState.WAITING_FOCUS_LOCK;
       // Lock the focus as the first step for a still image capture.
-      ShootingActivity.this.previewRequestBuilder
-          .set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-      ShootingActivity.this.captureSession
-          .capture(ShootingActivity.this.previewRequestBuilder.build(),
-                   ShootingActivity.this.sessionCaptureCallback, null);
+      this.previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+      this.captureSession.capture(this.previewRequestBuilder.build(), this.sessionCaptureCallback, null);
     } catch (CameraAccessException e) {
       e.printStackTrace();
     }
@@ -351,13 +346,13 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "runPrecaptureSequence");
     try {
       // This is how to tell the camera to trigger.
-      ShootingActivity.this.previewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                                                      CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+      this.previewRequestBuilder
+          .set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
       // Tell captureCallback to wait for the precapture sequence to be set.
-      ShootingActivity.this.cameraState = CameraState.WAITING_EXPOSURE_PRECAPTURE;
-      ShootingActivity.this.captureSession
-          .capture(ShootingActivity.this.previewRequestBuilder.build(),
-                   ShootingActivity.this.sessionCaptureCallback, null);
+      this.cameraState = CameraState.WAITING_EXPOSURE_PRECAPTURE;
+      this.captureSession
+          .capture(ShootingActivity.this.previewRequestBuilder.build(), ShootingActivity.this.sessionCaptureCallback,
+                   null);
     } catch (CameraAccessException e) {
       e.printStackTrace();
     }
@@ -383,18 +378,18 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   protected void captureStillPicture() {
     Log.d(LOG_TAG, "captureStillPicture");
     try {
-      if (ShootingActivity.this.cameraDevice == null) {
+      if (this.cameraDevice == null) {
         return;
       }
-      final CaptureRequest.Builder captureRequestBuilder = ShootingActivity.this.cameraDevice
-          .createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+      final CaptureRequest.Builder captureRequestBuilder =
+          this.cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
       captureRequestBuilder.addTarget(this.imageReader.getSurface());
       // Use the same AE and AF modes as the preview.
       captureRequestBuilder
           .set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
 
       // Orientation
-      int rotation = ShootingActivity.this.getWindowManager().getDefaultDisplay().getRotation();
+      int rotation = this.getDisplayRotation();
       captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
 
       CameraCaptureSession.CaptureCallback captureCallback =
@@ -476,57 +471,14 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     return this.getWindowManager().getDefaultDisplay().getRotation();
   }
 
-  protected void logDisplayRotation(int rotation) {
-    String r = null;
-    switch (rotation) {
-      case Surface.ROTATION_0:
-        r = "ROTATION_0";
-        break;
-      case Surface.ROTATION_90:
-        r = "ROTATION_90";
-        break;
-      case Surface.ROTATION_180:
-        r = "ROTATION_180";
-        break;
-      case Surface.ROTATION_270:
-        r = "ROTATION_270";
-        break;
-      default:
-        r = "UNKNOWN";
-        break;
-    }
-    Log.d(LOG_TAG, "logDisplayRotation: " + r);
-  }
-
-  private void configureTransform(Boolean first) {
+  private void configureTransform() {
     Log.d(LOG_TAG, "configureTransform");
-    if (this.textureView == null || !this.textureView.isAvailable() || this.imageReader == null) return;
-    Matrix matrix = new Matrix();
-    int rotation = 0, displayRotation = getDisplayRotation(); this.logDisplayRotation(displayRotation);
-    float baseAxis = (float) Math.min(this.textureView.getWidth(), this.textureView.getHeight());
-    RectF view = null, scaledView = new RectF(0, 0, baseAxis, baseAxis * this.sensorAspectRatio);
-    if (first) {
-      view = new RectF(0.0f, 0.0f, (float) this.textureView.getWidth(), (float) this.textureView.getHeight());
-    } else {
-      view = new RectF(0.0f, 0.0f, (float) this.textureView.getHeight(), (float) this.textureView.getWidth());
-    }
-
-    Log.d(LOG_TAG, "textureView: (" + this.textureView.getWidth() + ", " + this.textureView.getHeight() + ")");
-    Log.d(LOG_TAG, "imageReader: (" + this.imageReader.getWidth() + ", " + this.imageReader.getHeight() + ")");
-    Log.d(LOG_TAG, "view: (" + view.width() + ", " + view.height() + ")");
-    Log.d(LOG_TAG, "scaledView: (" + scaledView.width() + ", " + scaledView.height() + ")");
-    Log.d(LOG_TAG, "aspectRatio: " + this.sensorAspectRatio);
-    scaledView.offset(view.centerX() - scaledView.centerX(), view.centerY() - scaledView.centerY());
-    matrix.setRectToRect(view, scaledView, Matrix.ScaleToFit.FILL);
-    if (displayRotation == Surface.ROTATION_90 || displayRotation == Surface.ROTATION_270) {
-      rotation = displayRotation - 2;
-    } else {
-      rotation = displayRotation;
-    }
-    Log.d(LOG_TAG, "displayRotation: " + displayRotation);
-    Log.d(LOG_TAG, "rotation: " + rotation);
-    matrix.postRotate(90 * rotation, view.centerX(), view.centerY());
-    this.textureView.setTransform(matrix);
+    float scale = (float) this.imageReader.getHeight() / this.imageReader.getWidth();
+    Log.d(LOG_TAG, "scale: " + scale);
+    Matrix transform = new Matrix();
+    this.textureView.getTransform(transform);
+    transform.setScale(1.0f, scale);
+    this.textureView.setTransform(transform);
   }
 
   private void setupCamera() throws CameraAccessException {
@@ -549,13 +501,9 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
       Size[] sizes = configurationMap.getOutputSizes(ImageFormat.JPEG);
       Size largest = Collections.max(Arrays.asList(sizes), new CompareSizesByArea());
-
-      this.imageReader =
-          ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
+      this.imageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, 2);
       this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
-
-      this.sensorAspectRatio = (float) this.imageReader.getWidth() / this.imageReader.getHeight();
-      this.configureTransform(Boolean.TRUE);
+      this.configureTransform();
 
       this.cameraId = cameraId;
       break;
@@ -592,8 +540,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
     // https://shipilev.net/blog/2016/arrays-wisdom-ancients/
     String[] permissions = missingPermissions.toArray(new String[0]);
-    ActivityCompat.requestPermissions(ShootingActivity.this, permissions,
-                                      ShootingActivity.REQUEST_ALL_PERMISSIONS);
+    ActivityCompat.requestPermissions(this, permissions, ShootingActivity.REQUEST_ALL_PERMISSIONS);
   }
 
   private void openCamera() throws CameraAccessException, SecurityException {
