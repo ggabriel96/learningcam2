@@ -189,7 +189,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
   public void onConfigurationChanged(Configuration newConfig) {
     Log.d(LOG_TAG, "onConfigurationChanged");
     super.onConfigurationChanged(newConfig);
-    this.configureTransform();
+    this.configureTransform(Boolean.FALSE);
     /*if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
       Log.d(LOG_TAG, "LANDSCAPE");
     } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -498,14 +498,18 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     Log.d(LOG_TAG, "logDisplayRotation: " + r);
   }
 
-  private void configureTransform() {
+  private void configureTransform(Boolean first) {
     Log.d(LOG_TAG, "configureTransform");
     if (this.textureView == null || !this.textureView.isAvailable() || this.imageReader == null) return;
     Matrix matrix = new Matrix();
     int rotation = 0, displayRotation = getDisplayRotation(); this.logDisplayRotation(displayRotation);
     float baseAxis = (float) Math.min(this.textureView.getWidth(), this.textureView.getHeight());
-    RectF view = new RectF(0.0f, 0.0f, (float) this.textureView.getHeight(), (float) this.textureView.getWidth()),
-        scaledView = new RectF(0, 0, baseAxis, baseAxis * this.sensorAspectRatio);
+    RectF view = null, scaledView = new RectF(0, 0, baseAxis, baseAxis * this.sensorAspectRatio);
+    if (first) {
+      view = new RectF(0.0f, 0.0f, (float) this.textureView.getWidth(), (float) this.textureView.getHeight());
+    } else {
+      view = new RectF(0.0f, 0.0f, (float) this.textureView.getHeight(), (float) this.textureView.getWidth());
+    }
 
     Log.d(LOG_TAG, "textureView: (" + this.textureView.getWidth() + ", " + this.textureView.getHeight() + ")");
     Log.d(LOG_TAG, "imageReader: (" + this.imageReader.getWidth() + ", " + this.imageReader.getHeight() + ")");
@@ -551,7 +555,7 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       this.imageReader.setOnImageAvailableListener(this.onImageAvailableListener, null);
 
       this.sensorAspectRatio = (float) this.imageReader.getWidth() / this.imageReader.getHeight();
-      this.configureTransform();
+      this.configureTransform(Boolean.TRUE);
 
       this.cameraId = cameraId;
       break;
