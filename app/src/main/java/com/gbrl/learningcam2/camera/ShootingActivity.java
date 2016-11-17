@@ -1,4 +1,4 @@
-package com.gbrl.learningcam2;
+package com.gbrl.learningcam2.camera;
 
 import android.Manifest;
 import android.content.Context;
@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -41,6 +40,8 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+
+import com.gbrl.learningcam2.R;
 
 import java.io.File;
 import java.io.FileOutputStream;

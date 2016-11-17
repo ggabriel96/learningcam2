@@ -1,4 +1,4 @@
-package com.gbrl.learningcam2;
+package com.gbrl.learningcam2.camera;
 
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraDevice;

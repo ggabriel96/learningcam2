@@ -1,4 +1,4 @@
-package com.gbrl.learningcam2;
+package com.gbrl.learningcam2.camera;
 
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CaptureRequest;

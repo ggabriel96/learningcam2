@@ -29,15 +29,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light">
         <activity
-            android:name=".ShootingActivity"
+            android:name=".camera.ShootingActivity"
             android:screenOrientation="portrait"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
+
+        </activity>
+        <activity
+            android:name=".Home"
+            android:label="@string/title_activity_home"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
+
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
     </application>
 
-</manifest>
-    <!--android:configChanges="orientation|screenSize|keyboardHidden"-->
+</manifest> <!-- android:configChanges="orientation|screenSize|keyboardHidden" -->
