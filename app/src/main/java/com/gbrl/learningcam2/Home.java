@@ -10,16 +10,17 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.SeekBar;
 
 import com.gbrl.learningcam2.camera.ShootingActivity;
 import com.gbrl.learningcam2.ui.PagerAdapter;
 
 public class Home extends AppCompatActivity {
 
+  private static final String LOG_TAG = "H";
+  private SeekBar seekBar;
   private ViewPager viewPager;
   private PagerAdapter pagerAdapter;
-
-  private static final String LOG_TAG = "H";
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -31,12 +32,36 @@ public class Home extends AppCompatActivity {
 
     this.pagerAdapter = new PagerAdapter(this.getSupportFragmentManager());
 
+    this.seekBar = (SeekBar) this.findViewById(R.id.seek_bar);
+    // starts at zero and goes up to this max, inclusive
+    this.seekBar.setMax(this.pagerAdapter.getCount() - 1);
+    this.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+      @Override
+      public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        if (fromUser) {
+          Home.this.viewPager.setCurrentItem(progress);
+        }
+      }
+
+      @Override
+      public void onStartTrackingTouch(SeekBar seekBar) {
+
+      }
+
+      @Override
+      public void onStopTrackingTouch(SeekBar seekBar) {
+
+      }
+    });
+
     // Set up the ViewPager with the sections adapter.
     this.viewPager = (ViewPager) this.findViewById(R.id.pager);
     this.viewPager.setAdapter(pagerAdapter);
     this.viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
       @Override
       public void onPageSelected(int position) {
+        Home.this.seekBar.setProgress(position);
+        // Home.this.seekBar.setProgress(position + 1, Boolean.TRUE);
         Log.i(Home.LOG_TAG, Integer.toString(position));
       }
     });

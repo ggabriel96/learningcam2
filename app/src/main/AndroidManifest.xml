@@ -31,17 +31,13 @@
         <activity
             android:name=".camera.ShootingActivity"
             android:screenOrientation="portrait"
-            android:launchMode="singleTask"
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
-
         </activity>
         <activity
             android:name=".Home"
-            android:label="@string/title_activity_home"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:theme="@style/MainAppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>

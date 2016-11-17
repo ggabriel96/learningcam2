@@ -18,7 +18,7 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
 
   @Override
   public Fragment getItem(int position) {
-    return AlbumFragment.newInstance(position);
+    return AlbumFragment.newInstance(position + 1);
   }
 
   @Override

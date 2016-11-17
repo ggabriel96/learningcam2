@@ -1,10 +1,6 @@
 <resources>
     <string name="app_name">Learning Cam2</string>
-    <string name="permission_request">We need camera permission</string>
-    <string name="camera_error">This cameraDevice doesn\'t support Camera2 API</string>
     <string name="pictures_directory">IC</string>
-    <string name="title_activity_main">MainActivity</string>
     <string name="action_settings">Settings</string>
-    <string name="section_format">Hello World from section: %1$d</string>
     <string name="title_activity_home">Home</string>
 </resources>
