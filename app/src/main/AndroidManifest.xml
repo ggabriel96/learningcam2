@@ -34,12 +34,21 @@
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
         </activity>
         <activity
-            android:name=".Home"
+            android:name=".activity.Home"
             android:theme="@style/MainAppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
+
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".activity.Settings"
+            android:label="@string/title_activity_settings"
+            android:parentActivityName=".activity.Home">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.gbrl.learningcam2.activity.Home"/>
         </activity>
     </application>
 

@@ -55,31 +55,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * @TODO better modularize camera-related classes so that this activity can go to the activities package
+ */
 public class ShootingActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener,
     SensorEventListener {
-
-  private String cameraId;
-  private File latestPhotoFile;
-  private int sensorOrientation;
-  private ImageReader imageReader;
-  private TextureView textureView;
-  private CameraState cameraState;
-  private CameraDevice cameraDevice;
-  private CameraManager cameraManager;
-  private SensorManager sensorManager;
-  private CaptureRequest previewRequest;
-  private CameraCaptureSession captureSession;
-  private GestureDetectorCompat gestureDetector;
-  private OrientationManager orientationManager;
-  private Sensor accelerometer, gyroscope, rotation;
-  private CaptureRequest.Builder previewRequestBuilder;
-  private float[] accelerometerValues, gyroscopeValues, rotationValues;
-  private Integer accelerometerAccuracy, gyroscopeAccuracy, rotationAccuracy;
-
-  private final LocationHandler locationHandler = new LocationHandler(this);
-  private final CameraStateCallback cameraStateCallback = new CameraStateCallback(this);
-  private final SessionStateCallback sessionStateCallback = new SessionStateCallback(this);
-  private final SessionCaptureCallback sessionCaptureCallback = new SessionCaptureCallback(this);
 
   private static final String LOG_TAG = "SA";
   private static final int REQUEST_ALL_PERMISSIONS = 1;
@@ -99,14 +79,12 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     ShootingActivity.ORIENTATIONS.append(Surface.ROTATION_270, 180);
   }
 
-  public enum CameraState {
-    PREVIEW // Showing camera preview
-    , WAITING_FOCUS_LOCK // Waiting for the focus to be locked
-    , WAITING_EXPOSURE_PRECAPTURE // Waiting for the exposure to be precapture state
-    , WAITING_EXPOSURE_NON_PRECAPTURE // Waiting for the exposure state to be something other than precapture
-    , PICTURE_TAKEN
-  }
-
+  private final LocationHandler locationHandler = new LocationHandler(this);
+  private final CameraStateCallback cameraStateCallback = new CameraStateCallback(this);
+  private final SessionStateCallback sessionStateCallback = new SessionStateCallback(this);
+  private final SessionCaptureCallback sessionCaptureCallback = new SessionCaptureCallback(this);
+  private String cameraId;
+  private File latestPhotoFile;
   /**
    * This callback will be called when a still image is ready to be saved.
    */
@@ -121,6 +99,21 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
           }
         }
       };
+  private int sensorOrientation;
+  private ImageReader imageReader;
+  private TextureView textureView;
+  private CameraState cameraState;
+  private CameraDevice cameraDevice;
+  private CameraManager cameraManager;
+  private SensorManager sensorManager;
+  private CaptureRequest previewRequest;
+  private CameraCaptureSession captureSession;
+  private GestureDetectorCompat gestureDetector;
+  private OrientationManager orientationManager;
+  private Sensor accelerometer, gyroscope, rotation;
+  private CaptureRequest.Builder previewRequestBuilder;
+  private float[] accelerometerValues, gyroscopeValues, rotationValues;
+  private Integer accelerometerAccuracy, gyroscopeAccuracy, rotationAccuracy;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -602,18 +595,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
-  /**
-   * Compares two {@code Size}s based on their areas.
-   */
-  static class CompareSizesByArea implements Comparator<Size> {
-    @Override
-    public int compare(Size lhs, Size rhs) {
-      // We cast here to ensure the multiplications won't overflow
-      return Long.signum(
-          (long) lhs.getWidth() * lhs.getHeight() - (long) rhs.getWidth() * rhs.getHeight());
-    }
-  }
-
   public CameraState getCameraState() {
     return cameraState;
   }
@@ -654,20 +635,20 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     this.previewRequestBuilder = previewRequestBuilder;
   }
 
-  public void setCaptureSession(CameraCaptureSession captureSession) {
-    this.captureSession = captureSession;
-  }
-
   public CameraCaptureSession getCaptureSession() {
     return captureSession;
   }
 
-  public void setPreviewRequest(CaptureRequest previewRequest) {
-    this.previewRequest = previewRequest;
+  public void setCaptureSession(CameraCaptureSession captureSession) {
+    this.captureSession = captureSession;
   }
 
   public CaptureRequest getPreviewRequest() {
     return previewRequest;
+  }
+
+  public void setPreviewRequest(CaptureRequest previewRequest) {
+    this.previewRequest = previewRequest;
   }
 
   public SessionCaptureCallback getSessionCaptureCallback() {
@@ -676,5 +657,25 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
 
   public SessionStateCallback getSessionStateCallback() {
     return sessionStateCallback;
+  }
+
+  public enum CameraState {
+    PREVIEW // Showing camera preview
+    , WAITING_FOCUS_LOCK // Waiting for the focus to be locked
+    , WAITING_EXPOSURE_PRECAPTURE // Waiting for the exposure to be precapture state
+    , WAITING_EXPOSURE_NON_PRECAPTURE // Waiting for the exposure state to be something other than precapture
+    , PICTURE_TAKEN
+  }
+
+  /**
+   * Compares two {@code Size}s based on their areas.
+   */
+  static class CompareSizesByArea implements Comparator<Size> {
+    @Override
+    public int compare(Size lhs, Size rhs) {
+      // We cast here to ensure the multiplications won't overflow
+      return Long.signum(
+          (long) lhs.getWidth() * lhs.getHeight() - (long) rhs.getWidth() * rhs.getHeight());
+    }
   }
 }

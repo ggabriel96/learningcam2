@@ -1,4 +1,4 @@
-package com.gbrl.learningcam2;
+package com.gbrl.learningcam2.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,6 +12,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.SeekBar;
 
+import com.gbrl.learningcam2.R;
 import com.gbrl.learningcam2.camera.ShootingActivity;
 import com.gbrl.learningcam2.ui.PagerAdapter;
 
@@ -44,14 +45,10 @@ public class Home extends AppCompatActivity {
       }
 
       @Override
-      public void onStartTrackingTouch(SeekBar seekBar) {
-
-      }
+      public void onStartTrackingTouch(SeekBar seekBar) {}
 
       @Override
-      public void onStopTrackingTouch(SeekBar seekBar) {
-
-      }
+      public void onStopTrackingTouch(SeekBar seekBar) {}
     });
 
     // Set up the ViewPager with the sections adapter.
@@ -61,7 +58,6 @@ public class Home extends AppCompatActivity {
       @Override
       public void onPageSelected(int position) {
         Home.this.seekBar.setProgress(position);
-        // Home.this.seekBar.setProgress(position + 1, Boolean.TRUE);
         Log.i(Home.LOG_TAG, Integer.toString(position));
       }
     });
@@ -98,6 +94,8 @@ public class Home extends AppCompatActivity {
 
     //noinspection SimplifiableIfStatement
     if (id == R.id.action_settings) {
+      Intent settings = new Intent(this, Settings.class);
+      this.startActivity(settings);
       return true;
     }
 

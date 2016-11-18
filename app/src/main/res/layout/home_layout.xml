@@ -6,7 +6,7 @@
              android:layout_width="match_parent"
              android:layout_height="match_parent"
              android:fitsSystemWindows="true"
-             tools:context="com.gbrl.learningcam2.Home">
+             tools:context="com.gbrl.learningcam2.activity.Home">
 
     <android.support.design.widget.AppBarLayout
         android:id="@+id/appbar"
