@@ -2,12 +2,16 @@ package com.gbrl.learningcam2.ui;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.ImageView;
 
 import com.gbrl.learningcam2.R;
+import com.gbrl.learningcam2.background.PictureLoader;
+
+import java.io.File;
 
 /**
  * Created by gbrl on 11/17/16.
@@ -15,30 +19,45 @@ import com.gbrl.learningcam2.R;
 
 public class AlbumFragment extends Fragment {
 
-  private int position;
+  private static final String LOG_TAG = "AF";
+
+  private String absolutePath;
 
   public AlbumFragment() {}
 
-  static AlbumFragment newInstance(int position) {
-    AlbumFragment a = new AlbumFragment();
-    Bundle args = new Bundle();
-    args.putInt("position", position);
-    a.setArguments(args);
-    return a;
+  static AlbumFragment newInstance(File imageFile) {
+    Log.d(AlbumFragment.LOG_TAG, "newInstance");
+    AlbumFragment af = new AlbumFragment();
+    if (imageFile != null) {
+      Bundle arguments = new Bundle();
+      arguments.putString("absolutePath", imageFile.getAbsolutePath());
+      af.setArguments(arguments);
+    }
+    return af;
   }
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    Log.d(AlbumFragment.LOG_TAG, "onCreate");
     super.onCreate(savedInstanceState);
-    this.position = this.getArguments() != null ? this.getArguments().getInt("position") : 1;
+    Bundle arguments = this.getArguments();
+    if (arguments != null) {
+      this.absolutePath = arguments.getString("absolutePath");
+    }
   }
 
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    Log.d(AlbumFragment.LOG_TAG, "onCreateView");
     View album = inflater.inflate(R.layout.album_layout, container, false);
-    TextView albumName = (TextView) album.findViewById(R.id.album_title);
-    albumName.setText("Album #" + this.position);
+    if (this.absolutePath != null) {
+      Log.d(AlbumFragment.LOG_TAG, "PictureLoader.execute");
+      ImageView albumCover = (ImageView) album.findViewById(R.id.album_cover);
+      /**
+       * @TODO load everything on pager and publishProgress for every image
+       */
+      new PictureLoader(albumCover).execute(this.absolutePath);
+    }
     return album;
   }
-
 }
