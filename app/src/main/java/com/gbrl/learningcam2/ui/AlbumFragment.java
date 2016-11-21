@@ -9,7 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.gbrl.learningcam2.R;
-import com.gbrl.learningcam2.background.PictureLoader;
+import com.squareup.picasso.Picasso;
 
 import java.io.File;
 
@@ -21,6 +21,9 @@ public class AlbumFragment extends Fragment {
 
   private static final String LOG_TAG = "AF";
 
+  /**
+   * Absolute path from File object, prefixed with <code>file:</code> for Picasso.
+   */
   private String absolutePath;
 
   public AlbumFragment() {}
@@ -42,7 +45,7 @@ public class AlbumFragment extends Fragment {
     super.onCreate(savedInstanceState);
     Bundle arguments = this.getArguments();
     if (arguments != null) {
-      this.absolutePath = arguments.getString("absolutePath");
+      this.absolutePath = "file:" + arguments.getString("absolutePath");
     }
   }
 
@@ -51,12 +54,9 @@ public class AlbumFragment extends Fragment {
     Log.d(AlbumFragment.LOG_TAG, "onCreateView");
     View album = inflater.inflate(R.layout.album_layout, container, false);
     if (this.absolutePath != null) {
-      Log.d(AlbumFragment.LOG_TAG, "PictureLoader.execute");
+      Log.d(AlbumFragment.LOG_TAG, "Loading " + this.absolutePath);
       ImageView albumCover = (ImageView) album.findViewById(R.id.album_cover);
-      /**
-       * @TODO load everything on pager and publishProgress for every image
-       */
-      new PictureLoader(albumCover).execute(this.absolutePath);
+      Picasso.with(album.getContext()).load(this.absolutePath).into(albumCover);
     }
     return album;
   }
