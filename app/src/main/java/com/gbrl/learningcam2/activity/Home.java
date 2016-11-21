@@ -20,7 +20,6 @@ import com.gbrl.learningcam2.R;
 import com.gbrl.learningcam2.background.PictureReceiver;
 import com.gbrl.learningcam2.camera.ShootingActivity;
 import com.gbrl.learningcam2.ui.ImagePagerAdapter;
-import com.squareup.picasso.Picasso;
 
 import java.io.File;
 
@@ -37,9 +36,6 @@ public class Home extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     Log.d(Home.LOG_TAG, "onCreate");
     this.setContentView(R.layout.home_layout);
-
-    Picasso.with(this).setLoggingEnabled(true);
-    Picasso.with(this).setIndicatorsEnabled(true);
 
     Toolbar toolbar = (Toolbar) this.findViewById(R.id.toolbar);
     this.setSupportActionBar(toolbar);

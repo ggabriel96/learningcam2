@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             xmlns:app="http://schemas.android.com/apk/res-auto"
+             xmlns:lcam2="http://schemas.android.com/apk/res-auto"
              xmlns:tools="http://schemas.android.com/tools"
              android:id="@+id/main_content"
              android:layout_width="match_parent"
@@ -20,8 +20,8 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             android:elevation="4dp"
-            app:layout_scrollFlags="scroll|enterAlways"
-            app:popupTheme="@style/PopupOverlay">
+            lcam2:layout_scrollFlags="scroll|enterAlways"
+            lcam2:popupTheme="@style/PopupOverlay">
         </android.support.v7.widget.Toolbar>
     </android.support.design.widget.AppBarLayout>
 
@@ -46,6 +46,6 @@
         android:layout_gravity="end|bottom"
         android:layout_marginBottom="@dimen/fab_margin_bottom"
         android:layout_marginRight="@dimen/fab_margin_right"
-        app:srcCompat="@android:drawable/ic_menu_camera"/>
+        lcam2:srcCompat="@android:drawable/ic_menu_camera"/>
 
 </FrameLayout>

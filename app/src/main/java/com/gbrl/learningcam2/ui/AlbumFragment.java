@@ -8,8 +8,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.bumptech.glide.Glide;
 import com.gbrl.learningcam2.R;
-import com.squareup.picasso.Picasso;
 
 import java.io.File;
 
@@ -21,9 +21,6 @@ public class AlbumFragment extends Fragment {
 
   private static final String LOG_TAG = "AF";
 
-  /**
-   * Absolute path from File object, prefixed with <code>file:</code> for Picasso.
-   */
   private String absolutePath;
 
   public AlbumFragment() {}
@@ -45,7 +42,7 @@ public class AlbumFragment extends Fragment {
     super.onCreate(savedInstanceState);
     Bundle arguments = this.getArguments();
     if (arguments != null) {
-      this.absolutePath = "file:" + arguments.getString("absolutePath");
+      this.absolutePath = arguments.getString("absolutePath");
     }
   }
 
@@ -56,7 +53,7 @@ public class AlbumFragment extends Fragment {
     if (this.absolutePath != null) {
       Log.d(AlbumFragment.LOG_TAG, "Loading " + this.absolutePath);
       ImageView albumCover = (ImageView) album.findViewById(R.id.album_cover);
-      Picasso.with(album.getContext()).load(this.absolutePath).into(albumCover);
+      Glide.with(this).load(this.absolutePath).into(albumCover);
     }
     return album;
   }

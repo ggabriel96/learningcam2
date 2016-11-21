@@ -9,7 +9,7 @@
         app:showAsAction="never"/>
     <item
         android:id="@+id/about"
-        android:icon="@android:drawable/ic_dialog_info"
+        android:icon="@drawable/ic_info_black_24dp"
         android:title="About"
         app:showAsAction="ifRoom"/>
 </menu>
