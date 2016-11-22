@@ -352,6 +352,11 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     }
   }
 
+  protected int getDisplayRotation() {
+    Log.d(LOG_TAG, "getDisplayRotation");
+    return this.getWindowManager().getDefaultDisplay().getRotation();
+  }
+
   /**
    * Retrieves the JPEG orientation from the specified screen rotation.
    *
@@ -364,6 +369,56 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
     // For devices with orientation of 90, we simply return our mapping from ORIENTATIONS.
     // For devices with orientation of 270, we need to rotate the JPEG 180 degrees.
     return (ORIENTATIONS.get(rotation) + this.sensorOrientation + 270) % 360;
+  }
+
+  /**
+   * Code taken from:
+   * {@code http://stackoverflow.com/questions/5877780/orientation-from-android-accelerometer}
+   * <br><br>
+   * For more info, see {@code http://developer.download.nvidia.com/tegra/docs/tegra_android_accelerometer_v5f.pdf}
+   *
+   * @param displayRotation display rotation from {@code android.view.Display.getRotation()}
+   * @param eventValues raw {@code float[3]} accelerometer values
+   * @return {@code float[3]}
+   */
+  private float[] adjustAccelerometerValues(int displayRotation, @NonNull float[] eventValues) {
+    float[] adjustedValues = new float[3];
+
+    final int axisSwap[][] = {
+        {1, -1, 0, 1},  // ROTATION_0
+        {-1, -1, 1, 0}, // ROTATION_90
+        {-1, 1, 0, 1},  // ROTATION_180
+        {1, 1, 1, 0}    // ROTATION_270
+    };
+
+    final int[] as = axisSwap[displayRotation];
+    adjustedValues[0] = (float) as[0] * eventValues[as[2]];
+    adjustedValues[1] = (float) as[1] * eventValues[as[3]];
+    adjustedValues[2] = eventValues[2];
+
+    return adjustedValues;
+  }
+
+  /**
+   * @param accelerometerValues raw {@code float[3]} accelerometer values
+   * @return {@link android.view.Surface} rotation constant indicating the current screen orientation
+   */
+  private int getRotationFromAccelerometer(@NonNull float[] accelerometerValues) {
+    float[] adjustedValues = this.adjustAccelerometerValues(this.getDisplayRotation(), accelerometerValues);
+    if (adjustedValues[0] >= -4.9f && adjustedValues[0] <= 4.9f) {
+      if (adjustedValues[1] <= 0.0f) {
+        Log.v(ShootingActivity.LOG_TAG, "Surface.ROTATION_0, portrait");
+        return Surface.ROTATION_0; // portrait
+      }
+      Log.v(ShootingActivity.LOG_TAG, "Surface.ROTATION_180, reverse-portrait");
+      return Surface.ROTATION_180; // reverse-portrait
+    }
+    if (adjustedValues[0] <= 0.0f) {
+      Log.v(ShootingActivity.LOG_TAG, "Surface.ROTATION_270, reverse-landscape");
+      return Surface.ROTATION_270; // reverse-landscape
+    }
+    Log.v(ShootingActivity.LOG_TAG, "Surface.ROTATION_90, landscape");
+    return Surface.ROTATION_90; // defaults to landscape
   }
 
   /**
@@ -382,9 +437,9 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       captureRequestBuilder
           .set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
 
-      // Orientation
-      int rotation = this.getDisplayRotation();
-      captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
+      int rotation = this.getRotationFromAccelerometer(this.accelerometerValues);
+      Log.e(ShootingActivity.LOG_TAG, Integer.toString(rotation));
+      captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, this.getOrientation(rotation));
 
       CameraCaptureSession.CaptureCallback captureCallback =
           new CameraCaptureSession.CaptureCallback() {
@@ -458,11 +513,6 @@ public class ShootingActivity extends AppCompatActivity implements TextureView.S
       this.imageReader.close();
       this.imageReader = null;
     }
-  }
-
-  protected int getDisplayRotation() {
-    Log.d(LOG_TAG, "getDisplayRotation");
-    return this.getWindowManager().getDefaultDisplay().getRotation();
   }
 
   private void configureTransform() {

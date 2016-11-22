@@ -53,7 +53,7 @@ public class AlbumFragment extends Fragment {
     if (this.absolutePath != null) {
       Log.d(AlbumFragment.LOG_TAG, "Loading " + this.absolutePath);
       ImageView albumCover = (ImageView) album.findViewById(R.id.album_cover);
-      Glide.with(this).load(this.absolutePath).into(albumCover);
+      Glide.with(this).load(this.absolutePath).centerCrop().into(albumCover);
     }
     return album;
   }

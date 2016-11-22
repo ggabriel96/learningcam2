@@ -112,8 +112,14 @@ public class Home extends AppCompatActivity {
         this.startActivity(settings);
         return true;
       case R.id.about:
-        Toast.makeText(this, "Allo!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Toast!", Toast.LENGTH_SHORT).show();
         return true;
+      // case R.id.add:
+      //   RelativeLayout relativeLayout = (RelativeLayout) this.findViewById(R.id.album_layout);
+      //   ImageView albumCover = new ImageView(relativeLayout.getContext());
+      //   albumCover.setBackgroundResource(R.drawable.ic_add_black_24dp);
+      //   relativeLayout.addView(albumCover);
+      //   return true;
       default:
         return super.onOptionsItemSelected(item);
     }

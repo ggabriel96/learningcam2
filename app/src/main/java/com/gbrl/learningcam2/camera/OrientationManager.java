@@ -8,7 +8,7 @@ import android.view.OrientationEventListener;
 
 public class OrientationManager extends OrientationEventListener {
 
-  private static final String LOG_TAG = "OL";
+  private static final String LOG_TAG = "OM";
 
   private ShootingActivity shootingActivity;
   private int lastRotationDegrees;
