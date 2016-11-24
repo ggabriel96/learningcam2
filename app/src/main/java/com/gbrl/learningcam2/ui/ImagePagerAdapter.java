@@ -22,6 +22,9 @@ public class ImagePagerAdapter extends FragmentPagerAdapter {
 
   public ImagePagerAdapter(FragmentManager fm, File imagesDirectory) {
     super(fm);
+    /**
+     * @TODO check storage permission, throws NPE here
+     */
     this.imageFiles = new ArrayList<>(Arrays.asList(imagesDirectory.listFiles()));
   }
 

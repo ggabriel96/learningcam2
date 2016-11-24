@@ -12,7 +12,7 @@
         android:id="@+id/appbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/AppBarOverlay">
+        android:theme="@style/AppBarLayoutTheme">
 
         <android.support.v7.widget.Toolbar
             android:id="@+id/toolbar"
@@ -21,7 +21,7 @@
             android:background="?attr/colorPrimary"
             android:elevation="4dp"
             app:layout_scrollFlags="scroll|enterAlways"
-            app:popupTheme="@style/PopupOverlay">
+            app:popupTheme="@style/ToolbarTheme">
         </android.support.v7.widget.Toolbar>
     </android.support.design.widget.AppBarLayout>
 
@@ -29,7 +29,9 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/pager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_marginBottom="96dp"
+        android:layout_marginTop="64dp">
     </android.support.v4.view.ViewPager>
 
     <SeekBar
@@ -37,15 +39,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="@dimen/seek_bar_margin_bottom"/>
+        android:layout_marginBottom="@dimen/seek_bar_margin_bottom"
+        android:progressTint="@color/colorPrimaryDark" />
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
+    <android.support.design.widget.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
-        android:layout_marginBottom="@dimen/fab_margin_bottom"
-        android:layout_marginRight="@dimen/fab_margin_right"
-        app:srcCompat="@android:drawable/ic_menu_camera"/>
+        android:layout_gravity="bottom"
+        android:elevation="32dp"
+        app:itemBackground="@color/colorPrimary"
+        app:itemIconTint="@color/white"
+        app:itemTextColor="@color/white"
+        app:menu="@menu/bottom_navigation_main" />
 
 </FrameLayout>

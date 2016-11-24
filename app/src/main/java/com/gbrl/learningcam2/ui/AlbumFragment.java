@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.gbrl.learningcam2.R;
@@ -52,6 +53,8 @@ public class AlbumFragment extends Fragment {
     View album = inflater.inflate(R.layout.album_layout, container, false);
     if (this.absolutePath != null) {
       Log.d(AlbumFragment.LOG_TAG, "Loading " + this.absolutePath);
+      TextView albumFile = (TextView) album.findViewById(R.id.album_file);
+      albumFile.setText(this.absolutePath);
       ImageView albumCover = (ImageView) album.findViewById(R.id.album_cover);
       Glide.with(this).load(this.absolutePath).centerCrop().into(albumCover);
     }

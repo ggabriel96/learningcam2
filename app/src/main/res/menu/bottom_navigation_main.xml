@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.gbrl.learningcam2.activity.Home">
+
+    <item
+        android:id="@+id/action_home"
+        android:icon="@drawable/ic_photo_library_black_24dp"
+        android:title="Albums"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_camera"
+        android:icon="@drawable/ic_camera_alt_black_24dp"
+        android:title="Camera"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings_black_24dp"
+        android:title="Settings"
+        app:showAsAction="always" />
+
+</menu>

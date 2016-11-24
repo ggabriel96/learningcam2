@@ -4,7 +4,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.design.widget.FloatingActionButton;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BottomNavigationView;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -12,7 +13,6 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -68,7 +68,6 @@ public class Home extends AppCompatActivity {
       public void onStopTrackingTouch(SeekBar seekBar) {}
     });
 
-    // Set up the ViewPager with the sections adapter.
     this.viewPager = (ViewPager) this.findViewById(R.id.pager);
     this.viewPager.setAdapter(imagePagerAdapter);
     this.viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
@@ -79,12 +78,21 @@ public class Home extends AppCompatActivity {
       }
     });
 
-    FloatingActionButton fab = (FloatingActionButton) this.findViewById(R.id.fab);
-    fab.setOnClickListener(new View.OnClickListener() {
+    BottomNavigationView bottomNavigationView = (BottomNavigationView) this.findViewById(R.id.bottom_navigation);
+    bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
       @Override
-      public void onClick(View view) {
-        Intent camera = new Intent(Home.this, ShootingActivity.class);
-        Home.this.startActivity(camera);
+      public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+          case R.id.action_settings:
+            Intent settings = new Intent(Home.this, Settings.class);
+            Home.this.startActivity(settings);
+            return true;
+          case R.id.action_camera:
+            Intent camera = new Intent(Home.this, ShootingActivity.class);
+            Home.this.startActivity(camera);
+            return true;
+        }
+        return false;
       }
     });
   }
@@ -107,19 +115,9 @@ public class Home extends AppCompatActivity {
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     switch (item.getItemId()) {
-      case R.id.action_settings:
-        Intent settings = new Intent(this, Settings.class);
-        this.startActivity(settings);
-        return true;
       case R.id.about:
         Toast.makeText(this, "Toast!", Toast.LENGTH_SHORT).show();
         return true;
-      // case R.id.add:
-      //   RelativeLayout relativeLayout = (RelativeLayout) this.findViewById(R.id.album_layout);
-      //   ImageView albumCover = new ImageView(relativeLayout.getContext());
-      //   albumCover.setBackgroundResource(R.drawable.ic_add_black_24dp);
-      //   relativeLayout.addView(albumCover);
-      //   return true;
       default:
         return super.onOptionsItemSelected(item);
     }

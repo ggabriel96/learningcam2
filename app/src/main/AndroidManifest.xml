@@ -27,24 +27,22 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light">
+        android:theme="@style/MainTheme">
         <activity
             android:name=".camera.ShootingActivity"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
         </activity>
-        <activity
-            android:name=".activity.Home"
-            android:theme="@style/MainAppTheme">
+        <activity android:name=".activity.Home">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
         <activity
             android:name=".activity.Settings"
             android:label="@string/title_activity_settings"
+            android:theme="@style/SettingsTheme">
             android:parentActivityName=".activity.Home">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
