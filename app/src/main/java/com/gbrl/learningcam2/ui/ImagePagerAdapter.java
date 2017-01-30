@@ -25,7 +25,10 @@ public class ImagePagerAdapter extends FragmentPagerAdapter {
     /**
      * @TODO check storage permission, throws NPE here
      */
-    this.imageFiles = new ArrayList<>(Arrays.asList(imagesDirectory.listFiles()));
+    File[] files = imagesDirectory.listFiles();
+    if (files != null)
+      this.imageFiles = new ArrayList<>(Arrays.asList(imagesDirectory.listFiles()));
+    else this.imageFiles = new ArrayList<>();
   }
 
   @Override
